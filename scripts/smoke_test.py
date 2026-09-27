@@ -31,21 +31,30 @@ def main() -> int:
     parser.add_argument(
         "--image",
         type=Path,
-        required=True,
-        help="Path to the test image file (JPEG or PNG)",
+        default=None,
+        help="Path to the test image file (JPEG or PNG). If omitted, a synthetic sample is generated automatically.",
     )
     args = parser.parse_args()
 
     project_root = args.project_root.resolve()
-    image_path = args.image.resolve()
-
-    if not image_path.is_file():
-        print(f"[!] Error: Image file not found: {image_path}", file=sys.stderr)
-        return 1
-
     paths = AppPaths.from_root(project_root)
     paths.ensure_directories()
     config = AppConfig.load(project_root=project_root)
+
+    if args.image is not None:
+        image_path = args.image.resolve()
+        if not image_path.is_file():
+            print(f"[!] Error: Image file not found: {image_path}", file=sys.stderr)
+            return 1
+    else:
+        from PIL import Image, ImageDraw
+
+        image_path = paths.staging / "smoke_sample.jpg"
+        img = Image.new("RGB", (640, 640), color=(128, 128, 128))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([100, 100, 300, 300], fill=(200, 50, 50))
+        img.save(image_path, format="JPEG")
+        print(f"[*] No --image provided; generated synthetic sample image at {image_path}")
     registry = ModelRegistry(paths)
 
     # 1. Verify production model

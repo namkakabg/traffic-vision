@@ -30,7 +30,7 @@ pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
-### Windows (PowerShell)
+### Windows (PowerShell / Command Prompt)
 
 ```powershell
 # 1. Tạo môi trường ảo
@@ -43,6 +43,11 @@ python -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
+
+Hoặc trên Windows, bạn có thể **nhấp đúp chuột vào file `run_app.bat`** (hoặc `run.bat`) để chạy menu quản lý:
+- Tự động kiểm tra Python / `.venv`.
+- Tự động bootstrap baseline model nếu chưa có.
+- Cung cấp lựa chọn khởi chạy Web Dashboard hoặc chạy bộ kiểm thử (pytest / smoke test).
 
 ---
 
