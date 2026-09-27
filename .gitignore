@@ -39,6 +39,8 @@ htmlcov/
 artifacts/
 data/
 reports/
+*.pt
+*.onnx
 
 # Superpowers and tool scratch
 .superpowers/
