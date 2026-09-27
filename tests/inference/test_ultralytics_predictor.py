@@ -124,3 +124,25 @@ def test_predictor_validates_checksum_before_yolo_factory(sample_registered_mode
 
         # Ultralytics must NEVER be called if integrity failed
         mock_yolo_cls.assert_not_called()
+
+
+def test_predictor_caches_sha256_verification_across_calls(
+    sample_registered_model: RegisteredModel,
+):
+    fake_img = np.zeros((100, 100, 3), dtype=np.uint8)
+    fake_result = MagicMock()
+    fake_result.boxes = []
+
+    mock_yolo_instance = MagicMock()
+    mock_yolo_instance.return_value = [fake_result]
+
+    with patch("ultralytics.YOLO", return_value=mock_yolo_instance):
+        with patch(
+            "trafficvision.inference.ultralytics.sha256_file", wraps=sha256_file
+        ) as mock_sha:
+            predictor = UltralyticsOnnxPredictor.from_registered(sample_registered_model)
+            predictor.predict(fake_img, confidence=0.25, iou=0.7)
+            predictor.predict(fake_img, confidence=0.25, iou=0.7)
+
+            # Checksum must be computed ONCE on load, not on every frame
+            assert mock_sha.call_count == 1

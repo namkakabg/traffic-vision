@@ -92,3 +92,15 @@ def test_stage_upload_and_decode_validates_image_content(app_config: AppConfig):
     assert isinstance(bgr, np.ndarray)
     assert bgr.shape == (48, 64, 3)
     assert bgr.dtype == np.uint8
+
+
+def test_stage_upload_rejects_corrupted_video_content(app_config: AppConfig):
+    corrupt_video_data = b"This is plain text with an .mp4 extension, not real video."
+    with pytest.raises(MediaValidationError, match="Invalid or unreadable video"):
+        stage_upload(
+            filename="fake.mp4",
+            data=corrupt_video_data,
+            media_type="video",
+            paths=app_config.paths,
+            config=app_config,
+        )

@@ -9,6 +9,7 @@ from trafficvision.config import AppConfig, AppPaths
 from trafficvision.domain import Detection, ModelManifest
 from trafficvision.history import AnalysisRepository
 from trafficvision.inference.video import VideoProcessingError
+from trafficvision.media import MediaValidationError
 from trafficvision.registry import ModelRegistry, sha256_file
 from trafficvision.service import AnalysisService
 from trafficvision.settings import RuntimeSettingsStore
@@ -89,7 +90,7 @@ def test_analyze_video_failure_leaves_no_history_or_partial_file(service_env):
     # Corrupt video bytes
     bad_data = b"bad-video-bytes"
 
-    with pytest.raises(VideoProcessingError):
+    with pytest.raises((VideoProcessingError, MediaValidationError)):
         service.analyze_video_upload(filename="corrupt.mp4", data=bad_data)
 
     # No history row should be committed

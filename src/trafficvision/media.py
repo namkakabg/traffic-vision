@@ -68,6 +68,18 @@ def stage_upload(
     safe_path = paths.staging / f"{media_id}{raw_suffix}"
     safe_path.write_bytes(data)
 
+    if media_type == "video":
+        cap = cv2.VideoCapture(str(safe_path))
+        opened = cap.isOpened()
+        w = cap.get(cv2.CAP_PROP_FRAME_WIDTH) if opened else 0
+        h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT) if opened else 0
+        cap.release()
+
+        if not opened or w <= 0 or h <= 0:
+            if safe_path.exists():
+                safe_path.unlink()
+            raise MediaValidationError("Invalid or unreadable video content")
+
     return StagedMedia(
         media_id=media_id,
         original_filename=filename,

@@ -21,18 +21,18 @@ class UltralyticsOnnxPredictor:
         return cls(model=model)
 
     def _ensure_loaded(self) -> None:
-        # Check integrity before loading model
-        if not self.model.model_path.is_file():
-            raise ModelIntegrityError(f"Model file {self.model.model_path} does not exist")
-
-        actual_sha = sha256_file(self.model.model_path)
-        if actual_sha != self.model.manifest.sha256.lower():
-            raise ModelIntegrityError(
-                f"Model integrity violation for {self.model.manifest.model_id}: "
-                f"expected {self.model.manifest.sha256}, got {actual_sha}"
-            )
-
         if self._yolo is None:
+            # Check integrity before loading model into memory
+            if not self.model.model_path.is_file():
+                raise ModelIntegrityError(f"Model file {self.model.model_path} does not exist")
+
+            actual_sha = sha256_file(self.model.model_path)
+            if actual_sha != self.model.manifest.sha256.lower():
+                raise ModelIntegrityError(
+                    f"Model integrity violation for {self.model.manifest.model_id}: "
+                    f"expected {self.model.manifest.sha256}, got {actual_sha}"
+                )
+
             try:
                 from ultralytics import YOLO
             except ImportError as e:
