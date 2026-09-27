@@ -1,0 +1,33 @@
+app:
+  name: "TrafficVision"
+  env: "development"
+
+inference:
+  confidence: 0.25
+  iou: 0.70
+  imgsz: 640
+  device: "cpu"
+  backend: "onnx"
+
+media:
+  max_image_bytes: 20971520   # 20 MiB
+  max_video_bytes: 524288000   # 500 MiB
+  allowed_image_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+  allowed_video_extensions:
+    - ".mp4"
+    - ".avi"
+    - ".mov"
+
+storage:
+  artifacts_dir: "artifacts"
+  baseline_dir: "artifacts/baseline"
+  production_dir: "artifacts/production"
+  backups_dir: "artifacts/backups"
+  runs_dir: "artifacts/runs"
+  staging_dir: "artifacts/staging"
+  outputs_dir: "artifacts/outputs"
+  state_dir: "artifacts/state"
+  db_path: "artifacts/state/history.db"
