@@ -117,10 +117,11 @@ def main() -> None:
     if choice == "Phân tích":
         render_analysis_page(services)
     elif choice == "Huấn luyện AI":
-        st.title("🧠 Huấn luyện mô hình AI")
-        st.info(
-            "ℹ️ Giai đoạn 2 — chưa kích hoạt. Phần quản lý dữ liệu và huấn luyện sẽ được mở trong kế hoạch tiếp theo."
+        from trafficvision.ui.pages.training_placeholder import (
+            render_training_placeholder_page,
         )
+
+        render_training_placeholder_page(services)
     elif choice == "Lịch sử":
         from trafficvision.ui.pages.history import render_history_page
 
