@@ -30,6 +30,10 @@ pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
+Hoặc trên macOS, bạn có thể chạy nhanh:
+- **Terminal:** `./run_app.sh` (hoặc `./run.sh`)
+- **Finder:** Nhấp đúp vào file `run.command` để tự động mở Terminal và chọn tác vụ.
+
 ### Windows (PowerShell / Command Prompt)
 
 ```powershell
