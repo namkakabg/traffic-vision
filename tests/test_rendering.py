@@ -29,6 +29,15 @@ def test_annotate_image_with_vietnamese_labels():
     # Ensure output is a valid decodable image matching input dimensions
     rendered = Image.open(io.BytesIO(annotated_bytes))
     assert rendered.size == (400, 300)
+    assert rendered.format == "JPEG"
+
+    # Test WEBP encoding
+    webp_bytes = annotate_image(img_bgr, [det1, det2], format="WEBP")
+    assert isinstance(webp_bytes, bytes)
+    rendered_webp = Image.open(io.BytesIO(webp_bytes))
+    assert rendered_webp.size == (400, 300)
+    assert rendered_webp.format == "WEBP"
+
 
 
 def test_detections_csv_format_and_bom():

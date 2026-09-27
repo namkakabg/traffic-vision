@@ -73,7 +73,7 @@ class InferenceConfig(BaseModel):
 class MediaConfig(BaseModel):
     max_image_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
     max_video_bytes: int = Field(default=500 * 1024 * 1024, gt=0)
-    allowed_image_extensions: tuple[str, ...] = (".jpg", ".jpeg", ".png")
+    allowed_image_extensions: tuple[str, ...] = (".jpg", ".jpeg", ".png", ".webp")
     allowed_video_extensions: tuple[str, ...] = (".mp4", ".avi", ".mov")
 
 

@@ -90,7 +90,7 @@ streamlit run app.py
 Trình duyệt sẽ tự động mở tại địa chỉ `http://localhost:8501`.
 
 Các tính năng trên giao diện:
-- **Phân tích:** Nhận diện ảnh JPG/PNG và xử lý tuần tự video MP4/AVI/MOV, hiển thị trực quan và hỗ trợ tải tệp kết quả kèm CSV.
+- **Phân tích:** Nhận diện ảnh JPG/PNG/WEBP và xử lý tuần tự video MP4/AVI/MOV, hiển thị trực quan và hỗ trợ tải tệp kết quả kèm CSV.
 - **Lịch sử:** Tra cứu các phiên phân tích gần đây đã lưu vào SQLite.
 - **Thống kê:** Xem tổng số đối tượng và phân bố theo từng loại biển báo.
 - **Huấn luyện AI:** Giai đoạn 2 (hiện đang hiển thị lộ trình 4 bước chuẩn bị).

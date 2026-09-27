@@ -32,7 +32,7 @@ def main() -> int:
         "--image",
         type=Path,
         default=None,
-        help="Path to the test image file (JPEG or PNG). If omitted, a synthetic sample is generated automatically.",
+        help="Path to the test image file (JPEG, PNG, or WEBP). If omitted, a synthetic sample is generated automatically.",
     )
     args = parser.parse_args()
 

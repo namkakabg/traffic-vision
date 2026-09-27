@@ -60,4 +60,4 @@ def test_analysis_page_with_baseline_model(tmp_path: Path, monkeypatch):
     assert len(uploaders) >= 1
     # Check that image uploader has valid types
     image_uploader = uploaders[0]
-    assert {ext.lstrip(".") for ext in image_uploader.allowed_type} == {"jpg", "jpeg", "png"}
+    assert {ext.lstrip(".") for ext in image_uploader.allowed_type} == {"jpg", "jpeg", "png", "webp"}

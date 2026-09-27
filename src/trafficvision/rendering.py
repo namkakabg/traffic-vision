@@ -110,8 +110,17 @@ def annotate_image(
         draw.text((x1 + 3, badge_y1 + 2), label_text, fill=(255, 255, 255), font=font)
 
     buf = io.BytesIO()
-    save_format = "PNG" if format.upper() == "PNG" else "JPEG"
-    pil_img.save(buf, format=save_format, quality=92 if save_format == "JPEG" else None)
+    fmt_upper = format.upper()
+    if fmt_upper == "PNG":
+        save_format = "PNG"
+        save_kwargs: dict[str, Any] = {}
+    elif fmt_upper == "WEBP":
+        save_format = "WEBP"
+        save_kwargs = {"quality": 92}
+    else:
+        save_format = "JPEG"
+        save_kwargs = {"quality": 92}
+    pil_img.save(buf, format=save_format, **save_kwargs)
     return buf.getvalue()
 
 
