@@ -13,6 +13,11 @@ from trafficvision.data.dataset import (
     scan_yolo_dataset,
     summarize_dataset,
 )
+from trafficvision.data.eda import (
+    EDAMetrics,
+    generate_eda_report,
+    save_eda_summary,
+)
 from trafficvision.data.snapshot import (
     DatasetSnapshot,
     create_dataset_snapshot,
@@ -38,4 +43,7 @@ __all__ = [
     "validate_dataset",
     "DatasetSnapshot",
     "create_dataset_snapshot",
+    "EDAMetrics",
+    "generate_eda_report",
+    "save_eda_summary",
 ]
