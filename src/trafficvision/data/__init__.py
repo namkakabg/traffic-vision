@@ -13,6 +13,15 @@ from trafficvision.data.dataset import (
     scan_yolo_dataset,
     summarize_dataset,
 )
+from trafficvision.data.snapshot import (
+    DatasetSnapshot,
+    create_dataset_snapshot,
+)
+from trafficvision.data.validator import (
+    ValidationErrorItem,
+    ValidationReport,
+    validate_dataset,
+)
 
 __all__ = [
     "SignClass",
@@ -24,4 +33,9 @@ __all__ = [
     "DatasetSummary",
     "scan_yolo_dataset",
     "summarize_dataset",
+    "ValidationErrorItem",
+    "ValidationReport",
+    "validate_dataset",
+    "DatasetSnapshot",
+    "create_dataset_snapshot",
 ]
