@@ -127,3 +127,49 @@ def test_runner_handles_exception_and_marks_failed(tmp_path: Path) -> None:
     saved_state = TrainingState.from_file(run_dir / "state.json")
     assert saved_state.status == "failed"
     assert "Simulated GPU out of memory" in (saved_state.error_message or "")
+
+
+def test_runner_syncs_checkpoints_mid_run_and_preserves_on_crash(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run_crash_checkpoint"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    config = TrainingConfig(
+        run_id="run_crash_checkpoint",
+        data_yaml=tmp_path / "data.yaml",
+        epochs=5,
+        batch=4,
+    )
+    config_file = run_dir / "run_config.json"
+    config_file.write_text(config.model_dump_json(), encoding="utf-8")
+
+    def mock_train_crash_at_epoch_2(
+        config: TrainingConfig,
+        run_dir: Path,
+        state: TrainingState,
+        state_file: Path,
+        events_file: Path,
+        stop_file: Path,
+        weights_dir: Path,
+    ) -> None:
+        # Simulate epoch 1 completing and saving checkpoint
+        (weights_dir / "last.pt").write_bytes(b"epoch1_weights")
+        (weights_dir / "best.pt").write_bytes(b"epoch1_weights")
+        state.checkpoint_paths["last"] = str((weights_dir / "last.pt").resolve())
+        state.checkpoint_paths["best"] = str((weights_dir / "best.pt").resolve())
+        state.current_epoch = 1
+        state.to_file(state_file)
+
+        # Crash during epoch 2
+        raise RuntimeError("Crash on epoch 2")
+
+    with pytest.raises(RuntimeError, match="Crash on epoch 2"):
+        run_training_subprocess(config_file, train_fn=mock_train_crash_at_epoch_2)
+
+    # Checkpoint from epoch 1 must remain intact on disk
+    assert (run_dir / "weights" / "last.pt").is_file()
+    assert (run_dir / "weights" / "best.pt").is_file()
+    assert (run_dir / "weights" / "last.pt").read_bytes() == b"epoch1_weights"
+
+    saved_state = TrainingState.from_file(run_dir / "state.json")
+    assert saved_state.status == "failed"
+    assert "last" in saved_state.checkpoint_paths

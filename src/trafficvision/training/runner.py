@@ -15,6 +15,34 @@ from trafficvision.training.config import TrainingConfig
 from trafficvision.training.state import TrainingEvent, TrainingState
 
 
+def _sync_checkpoints(
+    run_dir: Path,
+    weights_dir: Path,
+    state: TrainingState,
+    trainer: Any | None = None,
+) -> None:
+    """Sync best.pt and last.pt checkpoints to weights_dir and update state."""
+    candidate_dirs = [run_dir / "yolo_train" / "weights"]
+    trainer_savedir = getattr(trainer, "save_dir", None)
+    if trainer_savedir is not None:
+        candidate_dirs.insert(0, Path(trainer_savedir) / "weights")
+
+    for src_dir in candidate_dirs:
+        if src_dir.is_dir():
+            best_src = src_dir / "best.pt"
+            last_src = src_dir / "last.pt"
+            if best_src.is_file():
+                shutil.copy2(best_src, weights_dir / "best.pt")
+            if last_src.is_file():
+                shutil.copy2(last_src, weights_dir / "last.pt")
+            break
+
+    if (weights_dir / "best.pt").is_file():
+        state.checkpoint_paths["best"] = str((weights_dir / "best.pt").resolve())
+    if (weights_dir / "last.pt").is_file():
+        state.checkpoint_paths["last"] = str((weights_dir / "last.pt").resolve())
+
+
 def run_training_subprocess(
     config_path: Path | str,
     train_fn: Callable[..., Any] | None = None,
@@ -97,6 +125,9 @@ def run_training_subprocess(
             state.metrics = clean_metrics
             state.elapsed_s = elapsed
 
+            # Mid-run checkpoint sync so weights/last.pt is always available
+            _sync_checkpoints(run_dir, weights_dir, state, trainer)
+
             if stop_file.exists():
                 stopped_early = True
                 trainer.stop = True
@@ -136,19 +167,12 @@ def run_training_subprocess(
             state.elapsed_s = round(time.time() - start_time, 2)
             state.to_file(state_file)
             raise
+        finally:
+            _sync_checkpoints(run_dir, weights_dir, state, getattr(model, "trainer", None))
+            state.to_file(state_file)
 
-    # Copy checkpoints if produced in ultralytics run subfolder
-    yolo_weights = run_dir / "yolo_train" / "weights"
-    if yolo_weights.is_dir():
-        if (yolo_weights / "best.pt").is_file():
-            shutil.copy2(yolo_weights / "best.pt", weights_dir / "best.pt")
-        if (yolo_weights / "last.pt").is_file():
-            shutil.copy2(yolo_weights / "last.pt", weights_dir / "last.pt")
-
-    if (weights_dir / "best.pt").is_file():
-        state.checkpoint_paths["best"] = str((weights_dir / "best.pt").resolve())
-    if (weights_dir / "last.pt").is_file():
-        state.checkpoint_paths["last"] = str((weights_dir / "last.pt").resolve())
+    # Sync checkpoints once more to guarantee best/last paths in state
+    _sync_checkpoints(run_dir, weights_dir, state)
 
     if stopped_early or stop_file.exists():
         state.status = "stopped"

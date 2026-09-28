@@ -107,15 +107,15 @@ class TrainingManager:
         else:
             env["PYTHONPATH"] = src_path
 
-        # 5. Open train.log and launch background process
-        log_file = open(run_dir / "train.log", "a", encoding="utf-8")  # noqa: SIM115
-        proc = subprocess.Popen(
-            cmd,
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
-            cwd=str(self.working_dir),
-            env=env,
-        )
+        # 5. Open train.log and launch background process (closed in parent immediately)
+        with open(run_dir / "train.log", "a", encoding="utf-8") as log_file:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                cwd=str(self.working_dir),
+                env=env,
+            )
 
         # 5. Record PID
         pid_file = run_dir / "run.pid"
@@ -194,7 +194,10 @@ class TrainingManager:
         for line in events_file.read_text(encoding="utf-8").splitlines():
             line_str = line.strip()
             if line_str:
-                events.append(TrainingEvent.from_json(line_str))
+                try:
+                    events.append(TrainingEvent.from_json(line_str))
+                except Exception:
+                    continue
         return events
 
     def list_runs(self) -> list[TrainingState]:

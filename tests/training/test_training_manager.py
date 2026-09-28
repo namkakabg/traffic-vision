@@ -104,6 +104,25 @@ def test_get_state_reads_state_file_and_events(tmp_path: Path) -> None:
     assert events[2].metrics["mAP50"] == 0.68
 
 
+def test_get_events_skips_partial_or_corrupt_lines(tmp_path: Path) -> None:
+    runs_dir = tmp_path / "runs"
+    manager = TrainingManager(runs_dir=runs_dir)
+
+    run_dir = runs_dir / "run_corrupt_events"
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    events_file = run_dir / "events.jsonl"
+    e1 = TrainingEvent(
+        epoch=1, metrics={"mAP50": 0.50}, timestamp="2026-09-29T00:00:00Z", elapsed_s=14.0
+    )
+    # Write one valid event, one half-written / corrupt JSON line, and another valid event
+    content = f'{e1.to_json()}\n{{"epoch": 2, "metrics":\n{e1.to_json()}\n'
+    events_file.write_text(content, encoding="utf-8")
+
+    events = manager.get_events("run_corrupt_events")
+    assert len(events) == 2
+
+
 def test_stop_training_creates_stop_signal_file(tmp_path: Path) -> None:
     runs_dir = tmp_path / "runs"
     manager = TrainingManager(runs_dir=runs_dir)
