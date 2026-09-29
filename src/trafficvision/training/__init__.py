@@ -4,15 +4,23 @@ from __future__ import annotations
 
 from typing import Any
 
+from trafficvision.training.candidate import package_candidate
 from trafficvision.training.config import TrainingConfig
+from trafficvision.training.evaluator import EvaluationMetrics, evaluate_checkpoint
+from trafficvision.training.exporter import ExportResult, export_and_verify_onnx
 from trafficvision.training.manager import TrainingManager
 from trafficvision.training.state import TrainingEvent, TrainingState
 
 __all__ = [
+    "EvaluationMetrics",
+    "ExportResult",
     "TrainingConfig",
     "TrainingEvent",
     "TrainingManager",
     "TrainingState",
+    "evaluate_checkpoint",
+    "export_and_verify_onnx",
+    "package_candidate",
     "run_training_subprocess",
 ]
 
