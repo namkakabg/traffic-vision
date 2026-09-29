@@ -54,7 +54,17 @@ def package_candidate(
 
     candidate_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Copy ONNX weights into candidate directory
+    # 1. Verify source PyTorch weights path
+    if weights_path is not None:
+        wp = Path(weights_path)
+        if not wp.exists():
+            logger.warning(
+                "Source PyTorch weights file does not exist at %s for candidate run %s",
+                wp,
+                run_id,
+            )
+
+    # 2. Copy ONNX weights into candidate directory
     src_onnx = Path(onnx_result.onnx_path)
     dest_onnx = candidate_dir / "model.onnx"
     shutil.copy2(src_onnx, dest_onnx)

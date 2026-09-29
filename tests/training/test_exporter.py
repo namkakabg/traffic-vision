@@ -152,3 +152,81 @@ def test_export_and_verify_missing_onnx_raises(tmp_path: Path):
     with patch("ultralytics.YOLO", return_value=mock_yolo_instance):
         with pytest.raises(FileNotFoundError):
             export_and_verify_onnx(model_path)
+
+
+def test_export_and_verify_onnx_default_runs_and_cpu_placement(tmp_path: Path):
+    """Verify default warmup (10) and benchmark (30) runs, and CPU placement."""
+    model_path = tmp_path / "best.pt"
+    model_path.write_bytes(b"dummy-pt-weights")
+    onnx_file = tmp_path / "best.onnx"
+    onnx_file.write_bytes(b"dummy-onnx-bytes")
+
+    shape = (1, 84, 8400)
+    pt_out_np = np.ones(shape, dtype=np.float32)
+
+    mock_pt_module = MagicMock()
+    mock_pt_module.to.return_value = mock_pt_module
+    mock_pt_tensor = MagicMock()
+    mock_pt_tensor.detach.return_value.cpu.return_value.numpy.return_value = pt_out_np
+    mock_pt_module.return_value = (mock_pt_tensor,)
+
+    mock_yolo_instance = MagicMock()
+    mock_yolo_instance.export.return_value = str(onnx_file)
+    mock_yolo_instance.model = mock_pt_module
+
+    mock_session = MagicMock()
+    mock_input_meta = MagicMock()
+    mock_input_meta.name = "images"
+    mock_session.get_inputs.return_value = [mock_input_meta]
+    mock_session.run.return_value = [pt_out_np]
+
+    with (
+        patch("ultralytics.YOLO", return_value=mock_yolo_instance),
+        patch("onnxruntime.InferenceSession", return_value=mock_session),
+    ):
+        result = export_and_verify_onnx(model_path)
+
+        # Verified model moved to cpu
+        mock_pt_module.to.assert_called_once_with("cpu")
+        mock_pt_module.eval.assert_called_once()
+
+        # 1 parity run + 10 warmup + 30 benchmark = 41 total runs
+        assert mock_session.run.call_count == 41
+        assert result.is_parity_valid is True
+
+
+def test_export_and_verify_onnx_shape_mismatch(tmp_path: Path):
+    """Verify shape mismatch between PyTorch and ONNX returns is_parity_valid=False and inf diff."""
+    model_path = tmp_path / "best.pt"
+    model_path.write_bytes(b"dummy-pt-weights")
+    onnx_file = tmp_path / "best.onnx"
+    onnx_file.write_bytes(b"dummy-onnx-bytes")
+
+    pt_out_np = np.ones((1, 84, 8400), dtype=np.float32)
+    onnx_out_np = np.ones((1, 80, 8400), dtype=np.float32)  # mismatched shape
+
+    mock_yolo_instance = MagicMock()
+    mock_yolo_instance.export.return_value = str(onnx_file)
+
+    mock_pt_tensor = MagicMock()
+    mock_pt_tensor.detach.return_value.cpu.return_value.numpy.return_value = pt_out_np
+    mock_yolo_instance.model.return_value = mock_pt_tensor
+
+    mock_session = MagicMock()
+    mock_input_meta = MagicMock()
+    mock_input_meta.name = "images"
+    mock_session.get_inputs.return_value = [mock_input_meta]
+    mock_session.run.return_value = [onnx_out_np]
+
+    with (
+        patch("ultralytics.YOLO", return_value=mock_yolo_instance),
+        patch("onnxruntime.InferenceSession", return_value=mock_session),
+    ):
+        result = export_and_verify_onnx(
+            model_path,
+            warmup_runs=1,
+            benchmark_runs=1,
+        )
+
+        assert result.is_parity_valid is False
+        assert result.max_abs_diff == float("inf")

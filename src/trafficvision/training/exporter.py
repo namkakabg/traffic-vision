@@ -28,8 +28,8 @@ def export_and_verify_onnx(
     model_path: Path | str,
     imgsz: int = 640,
     tolerance: float = 1e-3,
-    warmup_runs: int = 5,
-    benchmark_runs: int = 15,
+    warmup_runs: int = 10,
+    benchmark_runs: int = 30,
 ) -> ExportResult:
     """Export PyTorch YOLO weights to ONNX, verify numerical parity, and benchmark CPU inference.
 
@@ -37,8 +37,8 @@ def export_and_verify_onnx(
         model_path: Path to PyTorch model weights (.pt).
         imgsz: Image input resolution for exported ONNX model.
         tolerance: Maximum acceptable absolute difference between PyTorch and ONNX outputs.
-        warmup_runs: Number of unmeasured warmup inference runs.
-        benchmark_runs: Number of timed inference iterations for latency/FPS calculation.
+        warmup_runs: Number of unmeasured warmup inference runs (default 10).
+        benchmark_runs: Number of timed inference iterations for latency/FPS calculation (default 30).
 
     Returns:
         ExportResult containing path to ONNX model, max absolute difference, parity status,
@@ -69,11 +69,13 @@ def export_and_verify_onnx(
     rng = np.random.default_rng(seed=42)
     dummy_input_np = rng.uniform(0.0, 1.0, size=(1, 3, imgsz, imgsz)).astype(np.float32)
 
-    # 3. PyTorch inference
+    # 3. PyTorch inference (ensure CPU placement and eval mode)
     import torch  # Lazy import
 
     torch_input = torch.from_numpy(dummy_input_np)
     pt_module = getattr(model, "model", model)
+    if hasattr(pt_module, "to") and callable(pt_module.to):
+        pt_module.to("cpu")
     if hasattr(pt_module, "eval") and callable(pt_module.eval):
         pt_module.eval()
 
@@ -111,24 +113,34 @@ def export_and_verify_onnx(
     elif not isinstance(onnx_out, np.ndarray):
         onnx_out = np.asarray(onnx_out, dtype=np.float32)
 
-    # 5. Numerical parity comparison
-    max_abs_diff = float(np.max(np.abs(pt_out - onnx_out)))
-    is_parity_valid = bool(max_abs_diff <= tolerance)
-
-    if not is_parity_valid:
-        logger.warning(
-            "ONNX numerical parity check failed for %s: max_abs_diff=%.6f > tolerance=%.6f",
+    # 5. Numerical parity comparison (defensive against shape mismatch)
+    if pt_out.shape != onnx_out.shape:
+        logger.error(
+            "ONNX parity shape mismatch for %s: PyTorch shape %s vs ONNX shape %s",
             onnx_path,
-            max_abs_diff,
-            tolerance,
+            pt_out.shape,
+            onnx_out.shape,
         )
+        max_abs_diff = float("inf")
+        is_parity_valid = False
     else:
-        logger.info(
-            "ONNX parity verified for %s: max_abs_diff=%.6f <= tolerance=%.6f",
-            onnx_path,
-            max_abs_diff,
-            tolerance,
-        )
+        max_abs_diff = float(np.max(np.abs(pt_out - onnx_out)))
+        is_parity_valid = bool(max_abs_diff <= tolerance)
+
+        if not is_parity_valid:
+            logger.warning(
+                "ONNX numerical parity check failed for %s: max_abs_diff=%.6f > tolerance=%.6f",
+                onnx_path,
+                max_abs_diff,
+                tolerance,
+            )
+        else:
+            logger.info(
+                "ONNX parity verified for %s: max_abs_diff=%.6f <= tolerance=%.6f",
+                onnx_path,
+                max_abs_diff,
+                tolerance,
+            )
 
     # 6. CPU Latency and FPS Benchmark
     for _ in range(warmup_runs):

@@ -94,7 +94,8 @@ def evaluate_checkpoint(
 
     per_class_ap: dict[str, float] = {}
     if names and maps is not None:
-        for idx, class_name in names.items():
+        items = names.items() if isinstance(names, dict) else enumerate(names)
+        for idx, class_name in items:
             try:
                 i = int(idx)
                 if i < len(maps):

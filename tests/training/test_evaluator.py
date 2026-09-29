@@ -141,3 +141,30 @@ def test_evaluate_checkpoint_custom_split(tmp_path: Path):
             device="cpu",
             verbose=False,
         )
+
+
+def test_evaluate_checkpoint_handles_list_names(tmp_path: Path):
+    """Verify evaluate_checkpoint correctly extracts per_class_ap when names is a list."""
+    model_path = tmp_path / "best.pt"
+    model_path.write_bytes(b"dummy-weights")
+    data_yaml = tmp_path / "dataset.yaml"
+    data_yaml.write_text("names: [c0, c1]\n", encoding="utf-8")
+
+    mock_results = MagicMock()
+    mock_results.results_dict = {
+        "metrics/precision(B)": 0.8,
+        "metrics/recall(B)": 0.8,
+        "metrics/mAP50(B)": 0.8,
+        "metrics/mAP50-95(B)": 0.6,
+    }
+    # List format instead of dict
+    mock_results.names = ["sign_a", "sign_b"]
+    mock_results.box.maps = [0.85, 0.75]
+    mock_results.confusion_matrix = None
+
+    mock_yolo_instance = MagicMock()
+    mock_yolo_instance.val.return_value = mock_results
+
+    with patch("ultralytics.YOLO", return_value=mock_yolo_instance):
+        metrics = evaluate_checkpoint(model_path, data_yaml)
+        assert metrics.per_class_ap == {"sign_a": 0.85, "sign_b": 0.75}

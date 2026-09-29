@@ -206,3 +206,42 @@ def test_training_package_reexports():
     assert hasattr(tv_training, "ExportResult")
     assert hasattr(tv_training, "export_and_verify_onnx")
     assert hasattr(tv_training, "package_candidate")
+
+
+def test_package_candidate_warns_on_missing_weights_path(tmp_path: Path, caplog):
+    """Verify warning logged when weights_path does not exist."""
+    runs_dir = tmp_path / "artifacts" / "runs"
+    run_id = "run_missing_weights"
+
+    nonexistent_weights = tmp_path / "nonexistent" / "best.pt"
+    onnx_file = tmp_path / "best.onnx"
+    onnx_file.write_bytes(b"dummy-onnx-content")
+
+    onnx_result = ExportResult(
+        onnx_path=onnx_file,
+        max_abs_diff=0.0001,
+        is_parity_valid=True,
+        cpu_latency_ms=10.0,
+        cpu_fps=100.0,
+    )
+
+    eval_metrics = EvaluationMetrics(
+        precision=0.8,
+        recall=0.8,
+        f1=0.8,
+        map50=0.8,
+        map50_95=0.6,
+        per_class_ap={"c0": 0.8},
+        confusion_matrix=[[1]],
+    )
+
+    package_candidate(
+        run_id=run_id,
+        weights_path=nonexistent_weights,
+        onnx_result=onnx_result,
+        eval_metrics=eval_metrics,
+        class_names=["c0"],
+        runs_dir=runs_dir,
+    )
+
+    assert "Source PyTorch weights file does not exist" in caplog.text
