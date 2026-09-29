@@ -381,7 +381,9 @@ class ModelRegistry:
         try:
             model_file.relative_to(backup_resolved)
         except ValueError as err:
-            raise ModelSecurityError(f"Backup artifact '{artifact_filename}' escapes directory") from err
+            raise ModelSecurityError(
+                f"Backup artifact '{artifact_filename}' escapes directory"
+            ) from err
 
         if not model_file.is_file():
             raise ModelIntegrityError(f"Backup model file not found at {model_file}")
@@ -421,4 +423,3 @@ class ModelRegistry:
         )
         self.verify(prod_model)
         return prod_model
-

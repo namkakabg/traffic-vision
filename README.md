@@ -93,26 +93,127 @@ Các tính năng trên giao diện:
 - **Phân tích:** Nhận diện ảnh JPG/PNG/WEBP và xử lý tuần tự video MP4/AVI/MOV, hiển thị trực quan và hỗ trợ tải tệp kết quả kèm CSV.
 - **Lịch sử:** Tra cứu các phiên phân tích gần đây đã lưu vào SQLite.
 - **Thống kê:** Xem tổng số đối tượng và phân bố theo từng loại biển báo.
-- **Huấn luyện AI:** Giai đoạn 2 (hiện đang hiển thị lộ trình 4 bước chuẩn bị).
-- **Thông tin mô hình:** Kiểm tra chi tiết manifest, mã băm SHA-256, backend và danh mục lớp.
+- **Huấn luyện AI:** Giai đoạn 2 (Quy trình 4 bước: Thu thập dữ liệu -> Kiểm định Quality Gate/EDA -> Huấn luyện nền -> Đóng gói và thăng cấp Candidate).
+- **Thông tin mô hình:** Kiểm tra chi tiết manifest, mã băm SHA-256, backend, danh mục 82 lớp biển báo Việt Nam và quản lý sao lưu / hoàn tác (Rollback).
 - **Thiết lập:** Điều chỉnh ngưỡng Confidence, IoU (NMS) và giới hạn dung lượng tải lên.
 
 ---
 
-## 6. Cấu trúc thư mục Runtime
+## 6. Giai đoạn 2: Quy trình Huấn luyện & Thăng cấp Mô hình Biển báo Việt Nam (Phase 2)
+
+TrafficVision Phase 2 cung cấp quy trình khép kín từ tiền xử lý dữ liệu, kiểm định cổng chất lượng, huấn luyện ngầm, xuất ONNX tối ưu và thăng cấp/hoàn tác nguyên tử (atomic promotion & rollback).
+
+### 6.1. Chuẩn bị bộ dữ liệu (Dataset Ingestion)
+
+Hệ thống hỗ trợ chuẩn dữ liệu YOLO cho 82 lớp biển báo giao thông Việt Nam theo quy chuẩn quốc gia:
+
+1. **Từ Hugging Face:** Tải bộ dữ liệu `star092304/Traffic-sign-detection-VietNam`:
+   - Định dạng thư mục yêu cầu:
+     ```text
+     artifacts/staging/
+     ├── train/
+     │   ├── images/
+     │   └── labels/
+     ├── val/
+     │   ├── images/
+     │   └── labels/
+     └── test/
+         ├── images/
+         └── labels/
+     ```
+2. **Dữ liệu giả lập (Synthetic Fixture):** Dùng để thử nghiệm nhanh mà không cần tải dữ liệu lớn, có thể tạo qua giao diện Web (tab "Huấn luyện AI") hoặc gọi hàm `create_synthetic_dataset(target_dir, num_samples=100)`.
+
+### 6.2. Kiểm định Quality Gate & Phân tích EDA
+
+Trước khi huấn luyện, toàn bộ dữ liệu phải vượt qua cổng kiểm định nghiêm ngặt nhằm tránh lỗi dữ liệu rác, nhãn hỏng, hoặc rò rỉ dữ liệu giữa các tập:
+
+```bash
+python scripts/validate_dataset.py --data-dir artifacts/staging --output-dir artifacts/eda --create-snapshot
+```
+
+- **Quy tắc chặn (Blocking Gates):**
+  - `CORRUPT_IMAGE`: Ảnh 0 byte hoặc tệp ảnh bị hỏng/không đọc được.
+  - `MALFORMED_YOLO_LINE`: Dòng nhãn không đúng 5 giá trị số (`class x y w h`).
+  - `CLASS_ID_OUT_OF_RANGE`: Mã lớp nằm ngoài khoảng 0 – 81.
+  - `INVALID_COORDINATES`: Tọa độ ngoài `[0, 1]` hoặc chiều rộng/cao `<= 0`.
+  - `DATA_LEAKAGE`: Trùng lặp mã băm SHA-256 giữa tập huấn luyện (train) và kiểm định (val/test).
+- **Cờ `--output-dir`:** Xuất báo cáo EDA toàn diện `eda_report.json` (phân bố lớp, tỷ lệ khung hình, kích thước bbox COCO small/medium/large).
+- **Cờ `--create-snapshot`:** Tạo snapshot bất biến tại `artifacts/snapshots/<snapshot_id>/` kèm file `data.yaml` chuẩn 82 lớp sẵn sàng huấn luyện.
+
+### 6.3. Huấn luyện mô hình YOLO (Training Pipeline)
+
+Bạn có thể chạy huấn luyện qua Web UI hoặc thông qua công cụ dòng lệnh:
+
+```bash
+# Huấn luyện thông qua CLI
+python scripts/train.py \
+  --data-yaml artifacts/snapshots/<snapshot_id>/data.yaml \
+  --epochs 50 \
+  --batch 4 \
+  --imgsz 640 \
+  --patience 10 \
+  --amp \
+  --device cpu
+```
+
+- **Tham số hỗ trợ:**
+  - `--data-yaml`: Đường dẫn tới tệp `data.yaml` hợp lệ (bắt buộc).
+  - `--epochs`: Tổng số epoch huấn luyện (mặc định: 50).
+  - `--batch`: Kích thước mini-batch (mặc định: 4).
+  - `--imgsz`: Độ phân giải ảnh đầu vào (bội số của 32, mặc định: 640).
+  - `--device`: Thiết bị tính toán (`cpu`, `mps`, hoặc chỉ số GPU CUDA).
+  - `--no-wait`: Chạy tiến trình nền ngầm và thoát ngay lập tức.
+  - Tiến trình ghi nhật ký chi tiết vào `artifacts/runs/<run_id>/train.log` và hỗ trợ phím ngắt `Ctrl+C` dừng an toàn.
+
+### 6.4. Đóng gói Ứng viên & Thăng cấp / Hoàn tác (Promotion & Rollback)
+
+Sau khi huấn luyện thành công:
+1. Mô hình được đánh giá độc lập trên tập test (`EvaluationMetrics`).
+2. Xuất trọng số sang ONNX (`640x640`, batch 1, CPU), kiểm tra độ sai lệch số học tối đa (`max_abs_diff <= 1e-3`) và đo đạc tốc độ CPU FPS / Latency.
+3. Đóng gói ứng viên (Candidate) hoàn chỉnh tại `artifacts/runs/<run_id>/candidate/`.
+
+**Thao tác thăng cấp lên Production:**
+```bash
+# Thăng cấp candidate lên production (tự động tạo backup an toàn)
+python scripts/promote_model.py --candidate-dir artifacts/runs/<run_id>/candidate
+```
+
+**Xem lịch sử các bản sao lưu:**
+```bash
+python scripts/promote_model.py --list-backups
+```
+
+**Hoàn tác (Rollback) an toàn:**
+```bash
+# Hoàn tác về bản sao lưu gần nhất:
+python scripts/promote_model.py --rollback
+
+# Hoặc hoàn tác về một bản sao lưu cụ thể:
+python scripts/promote_model.py --rollback --backup-id <backup_id>
+```
+
+---
+
+## 7. Cấu trúc thư mục Runtime
 
 ```text
 artifacts/
 ├── baseline/            # Mô hình pretrained gốc + manifest bất biến
-├── production/          # Mô hình ONNX đang phục vụ suy luận
+├── production/          # Mô hình ONNX đang phục vụ suy luận hiện tại
+├── backups/             # Các bản sao lưu an toàn tự động trước mỗi lần thăng cấp
+├── runs/                # Nhật ký, trọng số và ứng viên (candidate) sau mỗi phiên train
+├── snapshots/           # Snapshot dữ liệu bất biến kèm data.yaml và manifest
+├── staging/             # Thư mục tiếp nhận dữ liệu YOLO đang xử lý
 ├── outputs/             # Ảnh/video đã chú thích và bảng CSV kết quả
 └── state/               # Cơ sở dữ liệu SQLite lịch sử và tệp settings.json
 ```
 
 ---
 
-## 7. Lưu ý quan trọng về Baseline
+## 8. Chuyển dịch Trạng thái Mô hình
 
-> **CẢNH BÁO QUAN TRỌNG:**  
-> Phiên bản hiện tại sử dụng mô hình cơ sở YOLO11n gốc (COCO pretrained) nhằm kiểm chứng toàn bộ luồng kỹ thuật end-to-end trên CPU.  
-> Mô hình baseline **chưa được fine-tune chuyên biệt cho biển báo Việt Nam**. Do đó, giao diện sẽ luôn hiển thị cảnh báo này và không tự động gán nhãn 82 lớp biển báo cho đến khi hoàn thành kế hoạch huấn luyện ở Giai đoạn 2.
+- **Baseline:** Mô hình ban đầu YOLO11n (COCO 80 lớp), đóng vai trò nền móng kỹ thuật và điểm tựa dự phòng ban đầu.
+- **Candidate:** Mô hình sau khi huấn luyện trên tập dữ liệu biển báo Việt Nam 82 lớp, đã qua kiểm tra parity ONNX và benchmark.
+- **Production:** Mô hình đang trực tiếp phục vụ các yêu cầu nhận diện ảnh/video trên hệ thống. Khi thăng cấp ứng viên 82 lớp thành công, toàn bộ nhãn nhận dạng trả về tiếng Việt chính xác theo danh mục QCVN.
+- **Rollback an toàn:** Bất kỳ sự cố nào xảy ra trong quá trình thăng cấp hoặc vận hành đều có thể được đảo ngược ngay lập tức chỉ với một thao tác CLI hoặc nút bấm trên Web UI.
+

@@ -54,7 +54,10 @@ def extract_mini_badge(c_name: str, c_id: str = "") -> tuple[str, str]:
 
     # 1. Stop sign -> text 'STOP' in bold red matching real stop signs
     if "stop" in lower:
-        return "STOP", "border-color: #e74444; color: #e74444; font-size: 8.5px; font-weight: 900; letter-spacing: -0.5px;"
+        return (
+            "STOP",
+            "border-color: #e74444; color: #e74444; font-size: 8.5px; font-weight: 900; letter-spacing: -0.5px;",
+        )
 
     # 2. Check for speed limit numbers (e.g., 50, 60, 80, P.127-50, etc.)
     speed_matches = re.findall(r"\b(20|30|40|50|60|70|80|90|100|120)\b", c_name)
@@ -72,7 +75,10 @@ def extract_mini_badge(c_name: str, c_id: str = "") -> tuple[str, str]:
     # 4. Words on signs (SLOW, BUS, TAXI, ZONE)
     for word in ["slow", "bus", "taxi", "zone"]:
         if word in lower:
-            return word.upper(), "border-color: #e74444; color: #17263b; font-size: 8.5px; font-weight: 900;"
+            return (
+                word.upper(),
+                "border-color: #e74444; color: #17263b; font-size: 8.5px; font-weight: 900;",
+            )
 
     # 5. Vietnamese Traffic Sign Categories
     if lower.startswith("p.") or "cam" in lower or "cấm" in lower:
@@ -200,12 +206,12 @@ def render_detection_summary(
         for it in detection_items:
             items_html += f"""
                 <div class="tv-row">
-                    <div class="tv-mini" style="{it['style']}">{it['mini']}</div>
+                    <div class="tv-mini" style="{it["style"]}">{it["mini"]}</div>
                     <div>
-                        <div class="tv-rname">{it['name']}</div>
-                        <div class="tv-rcode">{it['code']}</div>
+                        <div class="tv-rname">{it["name"]}</div>
+                        <div class="tv-rcode">{it["code"]}</div>
                     </div>
-                    <div class="tv-score">{it['score']}</div>
+                    <div class="tv-score">{it["score"]}</div>
                 </div>
             """
         items_html += "</div>"

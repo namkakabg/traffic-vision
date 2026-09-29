@@ -567,4 +567,3 @@ def apply_theme(st) -> None:
 def clean_html(html_str: str) -> str:
     """Strip leading/trailing whitespace from each line so Markdown doesn't treat indented HTML as a code block."""
     return "\n".join(line.strip() for line in html_str.splitlines() if line.strip())
-

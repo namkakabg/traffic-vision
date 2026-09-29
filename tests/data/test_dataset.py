@@ -219,8 +219,7 @@ def test_synthetic_dataset_invalid_cases(tmp_path: Path) -> None:
     )
     items_empty = scan_yolo_dataset(empty_lbl_dir)
     assert any(
-        it.label_path is not None and it.label_path.stat().st_size == 0
-        for it in items_empty
+        it.label_path is not None and it.label_path.stat().st_size == 0 for it in items_empty
     )
 
 

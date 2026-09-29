@@ -30,7 +30,6 @@ def create_sample_webp_bytes(width=100, height=100, color=(0, 255, 0)) -> bytes:
     return buf.getvalue()
 
 
-
 def test_stage_upload_safe_filename_and_path_traversal(app_config: AppConfig):
     data = create_sample_jpeg_bytes()
 
@@ -130,4 +129,3 @@ def test_stage_upload_and_decode_webp_image(app_config: AppConfig):
     assert isinstance(bgr, np.ndarray)
     assert bgr.shape == (60, 80, 3)
     assert bgr.dtype == np.uint8
-

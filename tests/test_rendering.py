@@ -39,7 +39,6 @@ def test_annotate_image_with_vietnamese_labels():
     assert rendered_webp.format == "WEBP"
 
 
-
 def test_detections_csv_format_and_bom():
     det = Detection(
         class_id=5,

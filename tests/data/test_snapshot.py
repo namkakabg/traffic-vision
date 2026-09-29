@@ -135,9 +135,7 @@ def test_snapshot_custom_snapshot_id(tmp_path: Path) -> None:
     report = validate_dataset(items, VIETNAM_TRAFFIC_SIGN_CATALOG)
 
     output_dir = tmp_path / "snapshots"
-    snapshot = create_dataset_snapshot(
-        items, output_dir, report, snapshot_id="snapshot_custom_001"
-    )
+    snapshot = create_dataset_snapshot(items, output_dir, report, snapshot_id="snapshot_custom_001")
 
     assert snapshot.snapshot_id == "snapshot_custom_001"
     assert snapshot.snapshot_dir.name == "snapshot_custom_001"

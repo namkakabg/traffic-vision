@@ -93,7 +93,9 @@ def create_candidate(
     return candidate_dir
 
 
-def setup_initial_production(registry: ModelRegistry, tmp_path: Path, model_id: str = "baseline-test") -> None:
+def setup_initial_production(
+    registry: ModelRegistry, tmp_path: Path, model_id: str = "baseline-test"
+) -> None:
     model_src = tmp_path / f"{model_id}.onnx"
     create_valid_onnx(model_src)
     digest = sha256_file(model_src)
@@ -113,7 +115,9 @@ def setup_initial_production(registry: ModelRegistry, tmp_path: Path, model_id: 
     registry.install_baseline(model_src, manifest)
 
 
-def test_promote_candidate_valid_creates_backup_and_sets_production(test_paths: AppPaths, tmp_path: Path):
+def test_promote_candidate_valid_creates_backup_and_sets_production(
+    test_paths: AppPaths, tmp_path: Path
+):
     """Test valid candidate promotion creates automated backup of old prod and promotes candidate to 82 classes."""
     registry = ModelRegistry(test_paths)
     setup_initial_production(registry, tmp_path, model_id="baseline-v1")
@@ -244,7 +248,9 @@ def test_promote_candidate_rejects_corrupt_onnx_smoke_test(test_paths: AppPaths,
     assert len(registry.list_backups()) == 0
 
 
-def test_promote_candidate_atomic_rollback_on_post_verification_failure(test_paths: AppPaths, tmp_path: Path):
+def test_promote_candidate_atomic_rollback_on_post_verification_failure(
+    test_paths: AppPaths, tmp_path: Path
+):
     """Test that if an error occurs after backup during promotion, production is automatically rolled back."""
     registry = ModelRegistry(test_paths)
     setup_initial_production(registry, tmp_path, model_id="orig-prod")
@@ -385,4 +391,8 @@ def test_list_backups_sorted_descending(test_paths: AppPaths, tmp_path: Path):
     backups = registry.list_backups()
     assert len(backups) == 3
     assert [b.model_id for b in backups] == ["model-newest", "model-middle", "model-old"]
-    assert [b.timestamp for b in backups] == ["20260929_150000", "20260929_120000", "20260928_100000"]
+    assert [b.timestamp for b in backups] == [
+        "20260929_150000",
+        "20260929_120000",
+        "20260928_100000",
+    ]

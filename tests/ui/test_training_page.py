@@ -133,15 +133,23 @@ def test_step1_dataset_input_scan_and_generate(tmp_path: Path, monkeypatch):
     assert any("mẫu" in lbl.lower() or "synthetic" in lbl.lower() for lbl in buttons)
 
     # Click generate demo synthetic dataset
-    gen_btn = next(b for lbl, b in buttons.items() if "mẫu" in lbl.lower() or "synthetic" in lbl.lower())
+    gen_btn = next(
+        b for lbl, b in buttons.items() if "mẫu" in lbl.lower() or "synthetic" in lbl.lower()
+    )
     gen_btn.click().run()
     assert not at.exception
 
-    all_text = " ".join([m.value for m in at.markdown] + [i.value for i in at.info] + [s.value for s in at.success])
+    all_text = " ".join(
+        [m.value for m in at.markdown] + [i.value for i in at.info] + [s.value for s in at.success]
+    )
     # Should display dataset info, sample count, or scan result
     assert "ảnh" in all_text.lower() or "sample" in all_text.lower() or "tổng" in all_text.lower()
     # Check HF download guidance
-    assert "huggingface" in all_text.lower() or "download" in all_text.lower() or "tải" in all_text.lower()
+    assert (
+        "huggingface" in all_text.lower()
+        or "download" in all_text.lower()
+        or "tải" in all_text.lower()
+    )
 
 
 def test_step2_validation_blocking_error_disables_training(tmp_path: Path, monkeypatch):
@@ -151,7 +159,9 @@ def test_step2_validation_blocking_error_disables_training(tmp_path: Path, monke
     paths, _ = setup_test_environment(tmp_path)
 
     # Create invalid dataset with corrupt image
-    invalid_dir = create_synthetic_dataset(tmp_path / "invalid_data", num_samples=5, invalid_case="corrupt_image")
+    invalid_dir = create_synthetic_dataset(
+        tmp_path / "invalid_data", num_samples=5, invalid_case="corrupt_image"
+    )
 
     app_path = str(Path(__file__).parents[2] / "app.py")
     at = AppTest.from_file(app_path, default_timeout=25)
@@ -163,14 +173,18 @@ def test_step2_validation_blocking_error_disables_training(tmp_path: Path, monke
     dir_input.input(str(invalid_dir)).run()
 
     # Click scan / validate
-    validate_btns = [b for b in at.button if "kiểm định" in b.label.lower() or "quét" in b.label.lower()]
+    validate_btns = [
+        b for b in at.button if "kiểm định" in b.label.lower() or "quét" in b.label.lower()
+    ]
     if validate_btns:
         validate_btns[0].click().run()
 
     assert not at.exception
     # Should show blocking error message or red alert
     all_text = " ".join([m.value for m in at.markdown] + [e.value for e in at.error])
-    assert "corrupt" in all_text.lower() or "blocking" in all_text.lower() or "lỗi" in all_text.lower()
+    assert (
+        "corrupt" in all_text.lower() or "blocking" in all_text.lower() or "lỗi" in all_text.lower()
+    )
 
     # Train button should be disabled
     start_train_btns = [b for b in at.button if "bắt đầu" in b.label.lower()]
@@ -195,13 +209,22 @@ def test_step2_validation_success_shows_eda_and_snapshot(tmp_path: Path, monkeyp
     dir_input.input(str(clean_dir)).run()
 
     # Click validate
-    validate_btns = [b for b in at.button if "kiểm định" in b.label.lower() or "quét" in b.label.lower()]
+    validate_btns = [
+        b for b in at.button if "kiểm định" in b.label.lower() or "quét" in b.label.lower()
+    ]
     if validate_btns:
         validate_btns[0].click().run()
 
     assert not at.exception
-    all_text = " ".join([m.value for m in at.markdown] + [s.value for s in at.success] + [i.value for i in at.info])
-    assert "hợp lệ" in all_text.lower() or "eda" in all_text.lower() or "phân bố" in all_text.lower() or "train" in all_text.lower()
+    all_text = " ".join(
+        [m.value for m in at.markdown] + [s.value for s in at.success] + [i.value for i in at.info]
+    )
+    assert (
+        "hợp lệ" in all_text.lower()
+        or "eda" in all_text.lower()
+        or "phân bố" in all_text.lower()
+        or "train" in all_text.lower()
+    )
 
     # Click snapshot button
     snapshot_btns = [b for b in at.button if "snapshot" in b.label.lower()]
@@ -256,7 +279,9 @@ def test_step4_evaluation_and_production_promotion(tmp_path: Path, monkeypatch):
     assert "cpu" in all_text.lower()
 
     # Locate promote button
-    promote_btns = [b for b in at.button if "production" in b.label.lower() or "thăng cấp" in b.label.lower()]
+    promote_btns = [
+        b for b in at.button if "production" in b.label.lower() or "thăng cấp" in b.label.lower()
+    ]
     assert len(promote_btns) >= 1
 
     promote_btns[0].click().run()

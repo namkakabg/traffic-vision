@@ -78,14 +78,22 @@ def render_analysis_page(services: AppServices) -> None:
                 file_size_kb = len(uploaded_image.getvalue()) / 1024.0
 
                 if "image_result" not in st.session_state:
-                    st.image(uploaded_image, caption=f"Ảnh gốc: {uploaded_image.name}", use_container_width=True)
-                    btn_analyze = st.button("🚀 Bắt đầu phân tích ảnh", type="primary", key="btn_run_img")
+                    st.image(
+                        uploaded_image,
+                        caption=f"Ảnh gốc: {uploaded_image.name}",
+                        use_container_width=True,
+                    )
+                    btn_analyze = st.button(
+                        "🚀 Bắt đầu phân tích ảnh", type="primary", key="btn_run_img"
+                    )
                     if btn_analyze:
                         try:
                             with st.spinner("Đang chạy mô hình AI nhận dạng..."):
-                                artifacts: AnalysisArtifacts = services.analysis_service.analyze_image_upload(
-                                    filename=uploaded_image.name,
-                                    data=uploaded_image.getvalue(),
+                                artifacts: AnalysisArtifacts = (
+                                    services.analysis_service.analyze_image_upload(
+                                        filename=uploaded_image.name,
+                                        data=uploaded_image.getvalue(),
+                                    )
                                 )
                                 st.session_state["image_result"] = artifacts
                                 st.session_state["active_result_type"] = "image"
@@ -131,7 +139,9 @@ def render_analysis_page(services: AppServices) -> None:
 
                 if "video_result" not in st.session_state:
                     st.info(f"Tệp video: `{uploaded_video.name}` ({vid_size_mb:.2f} MB)")
-                    btn_analyze_video = st.button("🚀 Bắt đầu phân tích video", type="primary", key="btn_run_vid")
+                    btn_analyze_video = st.button(
+                        "🚀 Bắt đầu phân tích video", type="primary", key="btn_run_vid"
+                    )
 
                     if btn_analyze_video:
                         progress_bar = st.progress(0.0, text="Đang chuẩn bị xử lý video...")
@@ -145,10 +155,12 @@ def render_analysis_page(services: AppServices) -> None:
 
                         try:
                             with st.spinner("Đang nhận diện theo từng khung hình video..."):
-                                vid_artifacts: AnalysisArtifacts = services.analysis_service.analyze_video_upload(
-                                    filename=uploaded_video.name,
-                                    data=uploaded_video.getvalue(),
-                                    on_progress=update_progress,
+                                vid_artifacts: AnalysisArtifacts = (
+                                    services.analysis_service.analyze_video_upload(
+                                        filename=uploaded_video.name,
+                                        data=uploaded_video.getvalue(),
+                                        on_progress=update_progress,
+                                    )
                                 )
                                 st.session_state["video_result"] = vid_artifacts
                                 st.session_state["active_result_type"] = "video"

@@ -152,7 +152,9 @@ def test_model_info_page_backups_and_rollback(tmp_path: Path, monkeypatch):
     assert len(at.selectbox) >= 1
 
     # Click rollback button
-    rollback_btns = [b for b in at.button if "rollback" in b.label.lower() or "phục hồi" in b.label.lower()]
+    rollback_btns = [
+        b for b in at.button if "rollback" in b.label.lower() or "phục hồi" in b.label.lower()
+    ]
     assert len(rollback_btns) >= 1
     rollback_btns[0].click().run()
     assert not at.exception

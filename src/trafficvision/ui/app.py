@@ -116,20 +116,13 @@ def main() -> None:
                     prod_model.manifest.source_model_id
                     and "baseline" in prod_model.manifest.source_model_id
                 )
-                or (
-                    "yolo11n" in prod_model.manifest.source.lower()
-                    and num_classes != 82
-                )
+                or ("yolo11n" in prod_model.manifest.source.lower() and num_classes != 82)
             )
 
             pulse_class = "tv-pulse-amber" if is_baseline else "tv-pulse"
-            status_text = (
-                "Baseline (Chưa fine-tune)" if is_baseline else "Mô hình sẵn sàng"
-            )
+            status_text = "Baseline (Chưa fine-tune)" if is_baseline else "Mô hình sẵn sàng"
             class_meta = (
-                f"{num_classes} lớp đối tượng"
-                if num_classes != 82
-                else "82 lớp biển báo Việt Nam"
+                f"{num_classes} lớp đối tượng" if num_classes != 82 else "82 lớp biển báo Việt Nam"
             )
 
             st.markdown(

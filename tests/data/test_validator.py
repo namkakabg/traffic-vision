@@ -132,7 +132,9 @@ def test_validate_invalid_coordinates(tmp_path: Path) -> None:
     (zero_w_dir / "train" / "images").mkdir(parents=True, exist_ok=True)
     (zero_w_dir / "train" / "labels").mkdir(parents=True, exist_ok=True)
     Image.new("RGB", (32, 32)).save(zero_w_dir / "train" / "images" / "zero_w.png")
-    (zero_w_dir / "train" / "labels" / "zero_w.txt").write_text("0 0.5 0.5 0.0 0.2\n", encoding="utf-8")
+    (zero_w_dir / "train" / "labels" / "zero_w.txt").write_text(
+        "0 0.5 0.5 0.0 0.2\n", encoding="utf-8"
+    )
 
     zw_items = scan_yolo_dataset(zero_w_dir)
     zw_report = validate_dataset(zw_items, VIETNAM_TRAFFIC_SIGN_CATALOG)

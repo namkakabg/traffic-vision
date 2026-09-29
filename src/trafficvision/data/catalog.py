@@ -50,7 +50,9 @@ VIETNAM_TRAFFIC_SIGN_CATALOG: list[SignClass] = [
     SignClass(26, "No Left or Right Turn", "Cấm rẽ trái và phải", "cấm"),
     SignClass(27, "Sharp Left Turn", "Cua gấp trái", "nguy hiểm"),
     SignClass(28, "Sharp Right Turn", "Cua gấp phải", "nguy hiểm"),
-    SignClass(29, "Intersection with a Minor Road", "Giao nhau với đường không ưu tiên", "cảnh báo"),
+    SignClass(
+        29, "Intersection with a Minor Road", "Giao nhau với đường không ưu tiên", "cảnh báo"
+    ),
     SignClass(30, "Intersection with Equal Roads", "Giao nhau cùng cấp", "cảnh báo"),
     SignClass(31, "No Moto Turn Left", "Cấm xe máy rẽ trái", "cấm"),
     SignClass(32, "Intersection with a Priority Road", "Giao nhau với đường ưu tiên", "chỉ dẫn"),
@@ -63,7 +65,9 @@ VIETNAM_TRAFFIC_SIGN_CATALOG: list[SignClass] = [
     SignClass(39, "Speed limit 50hm/h", "Giới hạn tốc độ 50km/h", "cấm"),
     SignClass(40, "Speed limit 70hm/h", "Giới hạn tốc độ 70km/h", "cấm"),
     SignClass(41, "Speed limit 80hm/h", "Giới hạn tốc độ 80km/h", "cấm"),
-    SignClass(42, "Level Crossing with Barriers", "Giao nhau với đường sắt có rào chắn", "cảnh báo"),
+    SignClass(
+        42, "Level Crossing with Barriers", "Giao nhau với đường sắt có rào chắn", "cảnh báo"
+    ),
     SignClass(43, "No U-Turn for Cars", "Cấm ô tô quay đầu", "cấm"),
     SignClass(44, "No bus", "Cấm xe buýt", "cấm"),
     SignClass(45, "No Overtaking", "Cấm vượt", "cấm"),

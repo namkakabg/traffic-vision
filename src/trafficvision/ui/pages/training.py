@@ -163,9 +163,7 @@ def render_training_page(services: AppServices) -> None:
     with tab_data:
         st.subheader("1. Nạp và kiểm tra cấu trúc dữ liệu")
 
-        default_data_dir = st.session_state.get(
-            "training_data_dir", str(paths.staging.resolve())
-        )
+        default_data_dir = st.session_state.get("training_data_dir", str(paths.staging.resolve()))
         data_dir_input = st.text_input(
             "Đường dẫn thư mục dữ liệu (YOLO dataset)",
             value=default_data_dir,
@@ -177,7 +175,9 @@ def render_training_page(services: AppServices) -> None:
 
         col_d1, col_d2 = st.columns([1, 1], gap="small")
         with col_d1:
-            btn_scan = st.button("🔍 Quét dữ liệu", key="btn_scan_dataset", use_container_width=True)
+            btn_scan = st.button(
+                "🔍 Quét dữ liệu", key="btn_scan_dataset", use_container_width=True
+            )
         with col_d2:
             btn_gen_demo = st.button(
                 "🎲 Tạo dữ liệu mẫu (Synthetic Demo Dataset)",
@@ -250,7 +250,9 @@ def render_training_page(services: AppServices) -> None:
                 pass
 
         # HuggingFace & Instructions Box
-        with st.expander("📥 Hướng dẫn tải toàn bộ dữ liệu chính thức (HuggingFace)", expanded=False):
+        with st.expander(
+            "📥 Hướng dẫn tải toàn bộ dữ liệu chính thức (HuggingFace)", expanded=False
+        ):
             st.markdown(
                 """
                 Để huấn luyện mô hình chuẩn 82 lớp biển báo Việt Nam với đầy đủ hơn 10.000 ảnh:
@@ -367,14 +369,26 @@ def render_training_page(services: AppServices) -> None:
                 with c_eda1:
                     st.metric("Tổng số nhãn (Bounding Boxes)", validation_report.total_labels)
                 with c_eda2:
-                    st.metric("Hộp kích thước nhỏ (COCO Small)", eda.size_distribution.get("small", 0))
+                    st.metric(
+                        "Hộp kích thước nhỏ (COCO Small)", eda.size_distribution.get("small", 0)
+                    )
                 with c_eda3:
-                    st.metric("Hộp kích thước vừa / lớn", eda.size_distribution.get("medium", 0) + eda.size_distribution.get("large", 0))
+                    st.metric(
+                        "Hộp kích thước vừa / lớn",
+                        eda.size_distribution.get("medium", 0)
+                        + eda.size_distribution.get("large", 0),
+                    )
 
                 if eda.class_counts:
                     df_classes = pd.DataFrame(
                         [
-                            {"Class ID": k, "Tên lớp": VIETNAM_TRAFFIC_SIGN_CATALOG[k].name_vi if k < len(VIETNAM_TRAFFIC_SIGN_CATALOG) else f"Lớp {k}", "Số lượng": v}
+                            {
+                                "Class ID": k,
+                                "Tên lớp": VIETNAM_TRAFFIC_SIGN_CATALOG[k].name_vi
+                                if k < len(VIETNAM_TRAFFIC_SIGN_CATALOG)
+                                else f"Lớp {k}",
+                                "Số lượng": v,
+                            }
                             for k, v in eda.class_counts.items()
                         ]
                     )
@@ -447,7 +461,11 @@ def render_training_page(services: AppServices) -> None:
                 and not has_blocking_err
                 and (
                     active_data_yaml is not None
-                    or (dataset_items is not None and validation_report is not None and not validation_report.has_blocking)
+                    or (
+                        dataset_items is not None
+                        and validation_report is not None
+                        and not validation_report.has_blocking
+                    )
                 )
             )
 
@@ -498,14 +516,18 @@ def render_training_page(services: AppServices) -> None:
                     init_state = training_mgr.start_training(train_cfg)
                     st.session_state["current_run_id"] = run_id
                     current_state = init_state
-                    st.success(f"Đã khởi động tiến trình huấn luyện nền: `{run_id}` (PID {init_state.pid})")
+                    st.success(
+                        f"Đã khởi động tiến trình huấn luyện nền: `{run_id}` (PID {init_state.pid})"
+                    )
                 except Exception as exc:
                     st.error(f"Lỗi khởi động huấn luyện: {exc}")
 
             if btn_stop and current_run_id and training_mgr is not None:
                 try:
                     training_mgr.stop_training(current_run_id)
-                    st.info("Đã gửi tín hiệu dừng (stop.signal). Tiến trình sẽ dừng lại sau epoch hiện tại.")
+                    st.info(
+                        "Đã gửi tín hiệu dừng (stop.signal). Tiến trình sẽ dừng lại sau epoch hiện tại."
+                    )
                 except Exception as exc:
                     st.error(f"Lỗi gửi tín hiệu dừng: {exc}")
 
@@ -518,8 +540,12 @@ def render_training_page(services: AppServices) -> None:
             if current_state is not None:
                 disp_epoch = f"{current_state.current_epoch}/{current_state.total_epochs}"
                 disp_map50 = f"{current_state.best_map50:.3f}"
-                val_loss = current_state.metrics.get("val/loss", current_state.metrics.get("loss", 0.0))
-                disp_loss = f"{val_loss:.3f}" if isinstance(val_loss, (int, float)) else str(val_loss)
+                val_loss = current_state.metrics.get(
+                    "val/loss", current_state.metrics.get("loss", 0.0)
+                )
+                disp_loss = (
+                    f"{val_loss:.3f}" if isinstance(val_loss, (int, float)) else str(val_loss)
+                )
                 disp_time = _format_seconds(current_state.elapsed_s)
                 status_label = current_state.status.upper()
                 if current_state.status == "running":
@@ -530,7 +556,9 @@ def render_training_page(services: AppServices) -> None:
                     status_badge = f'<span style="color:#dc2626; font-weight:850; font-size:10px;">● {status_label}</span>'
                 else:
                     status_badge = f'<span style="color:#718096; font-weight:850; font-size:10px;">● {status_label}</span>'
-                progress_val = min(1.0, current_state.current_epoch / max(1, current_state.total_epochs))
+                progress_val = min(
+                    1.0, current_state.current_epoch / max(1, current_state.total_epochs)
+                )
             else:
                 disp_epoch = "0/50"
                 disp_map50 = "0.000"
@@ -579,10 +607,14 @@ def render_training_page(services: AppServices) -> None:
             # Progress Bar
             pct = int(progress_val * 100)
             st.progress(progress_val)
-            st.caption(f"Tiến độ hoàn thành: {pct}% · Thí nghiệm: `{current_run_id or 'Chưa khởi chạy'}`")
+            st.caption(
+                f"Tiến độ hoàn thành: {pct}% · Thí nghiệm: `{current_run_id or 'Chưa khởi chạy'}`"
+            )
 
             # Training Events Chart
-            events = training_mgr.get_events(current_run_id) if (training_mgr and current_run_id) else []
+            events = (
+                training_mgr.get_events(current_run_id) if (training_mgr and current_run_id) else []
+            )
             if events:
                 chart_data = []
                 for ev in events:
@@ -602,7 +634,11 @@ def render_training_page(services: AppServices) -> None:
             log_lines: list[str] = []
             if current_run_id and (runs_dir / current_run_id / "train.log").is_file():
                 try:
-                    all_lines = (runs_dir / current_run_id / "train.log").read_text(encoding="utf-8").splitlines()
+                    all_lines = (
+                        (runs_dir / current_run_id / "train.log")
+                        .read_text(encoding="utf-8")
+                        .splitlines()
+                    )
                     log_lines = all_lines[-6:]
                 except Exception:
                     log_lines = []
@@ -726,7 +762,9 @@ def render_training_page(services: AppServices) -> None:
             cpu_latency = cand_benchmark.get("cpu_latency_ms", "N/A")
             cpu_fps = cand_benchmark.get("cpu_fps", "N/A")
             is_parity = cand_benchmark.get("is_parity_valid", True)
-            parity_text = "Đạt chuẩn ONNX (Parity Valid)" if is_parity else "Cảnh báo sai lệch PyTorch-ONNX"
+            parity_text = (
+                "Đạt chuẩn ONNX (Parity Valid)" if is_parity else "Cảnh báo sai lệch PyTorch-ONNX"
+            )
 
             st.markdown(
                 clean_html(f"""
