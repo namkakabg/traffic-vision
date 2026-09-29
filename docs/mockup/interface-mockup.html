@@ -1,0 +1,139 @@
+<style>
+  #tv { --ink:#132238; --muted:#6d7c91; --line:#e4eaf1; --blue:#2563eb; --navy:#0b1730; --cyan:#17b6b1; color:var(--ink); }
+  #tv * { box-sizing:border-box; }
+  #tv .browser { overflow:hidden; border:1px solid #dce3ec; border-radius:22px; background:#f5f7fb; box-shadow:0 24px 60px rgba(20,36,60,.15); }
+  #tv .chrome { display:flex; align-items:center; gap:7px; padding:12px 16px; background:#fff; border-bottom:1px solid var(--line); }
+  #tv .dot { width:9px; height:9px; border-radius:50%; background:#d7dee8; }
+  #tv .address { margin-left:13px; width:42%; padding:6px 12px; border-radius:8px; background:#f3f6f9; color:#8a97a8; font-size:11px; }
+  #tv .shell { display:grid; grid-template-columns:190px 1fr; min-height:670px; }
+  #tv .side { color:#d8e5f7; background:linear-gradient(180deg,#0b1730,#101f3c); padding:24px 15px; }
+  #tv .brand { display:flex; align-items:center; gap:10px; color:#fff; font-weight:800; font-size:17px; padding:0 8px 26px; }
+  #tv .mark { display:grid; place-items:center; width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,#29d2c8,#3182ff); box-shadow:0 7px 20px rgba(37,99,235,.35); }
+  #tv .navlabel { padding:10px 10px 7px; font-size:9px; color:#7f94b3; letter-spacing:.13em; text-transform:uppercase; }
+  #tv .navitem { display:flex; gap:10px; align-items:center; padding:10px; margin:4px 0; border-radius:9px; color:#9fb0c8; font-size:12px; }
+  #tv .navitem.active { color:white; background:rgba(65,129,255,.18); box-shadow:inset 3px 0 #48cfc7; }
+  #tv .navicon { width:20px; text-align:center; }
+  #tv .modelcard { margin-top:142px; padding:12px; border:1px solid rgba(255,255,255,.09); background:rgba(255,255,255,.045); border-radius:12px; }
+  #tv .online { display:flex; gap:7px; align-items:center; color:#8fe8c2; font-size:10px; }
+  #tv .pulse { width:7px; height:7px; border-radius:50%; background:#38d996; box-shadow:0 0 0 4px rgba(56,217,150,.12); }
+  #tv .modelname { color:#fff; font-weight:700; font-size:12px; margin-top:10px; }
+  #tv .main { padding:22px 24px 28px; }
+  #tv .top { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  #tv .eyebrow { color:var(--blue); font-size:9px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+  #tv h1 { font-size:23px; margin:5px 0 3px; letter-spacing:-.035em; }
+  #tv .desc { color:var(--muted); font-size:11px; margin:0; }
+  #tv .top-actions { display:flex; align-items:center; gap:9px; }
+  #tv .pill { padding:7px 10px; background:#fff; border:1px solid var(--line); border-radius:99px; color:#5f6f84; font-size:10px; }
+  #tv .avatar { display:grid; place-items:center; width:32px; height:32px; border-radius:50%; color:#fff; font-size:10px; font-weight:800; background:linear-gradient(135deg,#2563eb,#17b6b1); }
+  #tv .grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(220px,.8fr); gap:16px; }
+  #tv .panel { border:1px solid var(--line); background:#fff; border-radius:16px; box-shadow:0 6px 18px rgba(33,49,75,.045); }
+  #tv .panelhead { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line); }
+  #tv .paneltitle { font-size:12px; font-weight:800; }
+  #tv .tabs { display:flex; gap:4px; padding:3px; border-radius:9px; background:#eef2f7; }
+  #tv .tab { padding:6px 11px; border-radius:7px; color:#7b899b; font-size:9px; font-weight:700; }
+  #tv .tab.active { background:#fff; color:var(--blue); box-shadow:0 2px 7px rgba(33,49,75,.09); }
+  #tv .scene { position:relative; min-height:370px; overflow:hidden; margin:14px; border-radius:12px; background:linear-gradient(180deg,#9fd6f1 0 38%,#dce5d0 38% 48%,#5d7081 48% 100%); }
+  #tv .sun { position:absolute; right:42px; top:25px; width:42px; height:42px; border-radius:50%; background:#ffe49a; box-shadow:0 0 30px rgba(255,225,139,.8); }
+  #tv .road { position:absolute; left:15%; right:15%; bottom:-70px; height:250px; background:#48515b; clip-path:polygon(40% 0,60% 0,100% 100%,0 100%); }
+  #tv .dash { position:absolute; left:49.4%; top:52%; width:4px; height:31px; background:#f3e8b1; box-shadow:0 62px #f3e8b1,0 124px #f3e8b1; transform:perspective(100px) rotateX(12deg); }
+  #tv .tree { position:absolute; bottom:47%; width:54px; height:62px; border-radius:55% 45% 48% 52%; background:#3c8a58; box-shadow:44px 6px #477f52,87px -3px #3f915d; }
+  #tv .tree.r { right:5%; transform:scale(.9); }
+  #tv .tree.l { left:2%; }
+  #tv .signpost { position:absolute; left:71%; top:28%; width:5px; height:125px; background:#a5adb5; }
+  #tv .sign { position:absolute; left:calc(71% - 23px); top:21%; display:grid; place-items:center; width:52px; height:52px; border:7px solid #e74444; border-radius:50%; background:white; color:#17263b; font-size:16px; font-weight:900; }
+  #tv .box { position:absolute; left:calc(71% - 31px); top:18%; width:69px; height:74px; border:2px solid #24d1c5; border-radius:3px; box-shadow:0 0 0 1px rgba(0,0,0,.12); }
+  #tv .tag { position:absolute; left:-2px; top:-22px; white-space:nowrap; padding:4px 7px; border-radius:4px 4px 4px 0; color:#06282b; background:#24d1c5; font-size:8px; font-weight:900; }
+  #tv .confidence { position:absolute; right:13px; bottom:13px; padding:7px 9px; border-radius:8px; color:#fff; background:rgba(8,18,36,.76); backdrop-filter:blur(7px); font-size:9px; }
+  #tv .uploadbar { display:flex; justify-content:space-between; align-items:center; padding:0 14px 14px; }
+  #tv .file { display:flex; align-items:center; gap:9px; font-size:10px; color:#5e6e83; }
+  #tv .fileicon { padding:7px; border-radius:8px; color:var(--blue); background:#edf3ff; }
+  #tv .button { border:0; border-radius:9px; padding:9px 13px; color:#fff; background:linear-gradient(135deg,#2563eb,#2876ef); font-size:10px; font-weight:800; box-shadow:0 7px 14px rgba(37,99,235,.22); }
+  #tv .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:14px; }
+  #tv .stat { padding:13px; border-radius:12px; background:#f6f8fb; }
+  #tv .statnum { font-size:21px; font-weight:850; letter-spacing:-.04em; }
+  #tv .statlabel { margin-top:3px; color:#7a8798; font-size:9px; }
+  #tv .detect { margin:0 14px 14px; overflow:hidden; border:1px solid var(--line); border-radius:11px; }
+  #tv .row { display:grid; grid-template-columns:30px 1fr 38px; align-items:center; gap:8px; padding:10px; border-bottom:1px solid #edf0f4; }
+  #tv .row:last-child { border-bottom:0; }
+  #tv .mini { display:grid; place-items:center; width:29px; height:29px; border:3px solid #e74747; border-radius:50%; color:#233248; font-size:8px; font-weight:900; }
+  #tv .rname { font-size:9px; font-weight:800; }
+  #tv .rcode { color:#8995a5; font-size:8px; margin-top:2px; }
+  #tv .score { padding:4px; border-radius:6px; background:#eaf8f3; color:#178561; text-align:center; font-size:8px; font-weight:900; }
+  #tv .notice { display:flex; gap:8px; margin:0 14px 14px; padding:10px; border-radius:10px; color:#656f7d; background:#fff8e8; font-size:9px; line-height:1.45; }
+  @media (max-width:850px) { #tv .shell{grid-template-columns:1fr} #tv .side{display:none} #tv .grid{grid-template-columns:1fr} }
+</style>
+
+<div id="tv">
+  <h2>Mockup giao diện web TrafficVision</h2>
+  <p class="subtitle">Màn hình kết quả phân tích ảnh — phong cách dashboard hiện đại, tập trung vào khả năng giải thích kết quả AI.</p>
+
+  <div class="browser">
+    <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span><div class="address">localhost:8501 · TrafficVision</div></div>
+    <div class="shell">
+      <aside class="side">
+        <div class="brand"><span class="mark">⌁</span> TrafficVision</div>
+        <div class="navlabel">Không gian làm việc</div>
+        <div class="navitem active"><span class="navicon">◫</span> Phân tích</div>
+        <div class="navitem"><span class="navicon">◷</span> Lịch sử</div>
+        <div class="navitem"><span class="navicon">▥</span> Thống kê</div>
+        <div class="navlabel">Hệ thống</div>
+        <div class="navitem"><span class="navicon">◎</span> Thông tin mô hình</div>
+        <div class="navitem"><span class="navicon">⚙</span> Thiết lập</div>
+        <div class="modelcard">
+          <div class="online"><span class="pulse"></span> Mô hình sẵn sàng</div>
+          <div class="modelname">YOLO11n · ONNX</div>
+          <div style="color:#7f94b3;font-size:9px;margin-top:4px">82 lớp biển báo Việt Nam</div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="top">
+          <div><div class="eyebrow">AI Traffic Intelligence</div><h1>Phân tích biển báo</h1><p class="desc">Tải ảnh hoặc video giao thông để phát hiện và nhận dạng tự động.</p></div>
+          <div class="top-actions"><span class="pill">● CPU · 42 ms</span><span class="avatar">PVN</span></div>
+        </div>
+
+        <div class="grid">
+          <section class="panel">
+            <div class="panelhead"><span class="paneltitle">Kết quả trực quan</span><div class="tabs"><span class="tab active">Hình ảnh</span><span class="tab">Video</span></div></div>
+            <div class="scene">
+              <div class="sun"></div><div class="tree l"></div><div class="tree r"></div><div class="road"></div><div class="dash"></div>
+              <div class="signpost"></div><div class="sign">50</div>
+              <div class="box"><span class="tag">Giới hạn 50 km/h · 96%</span></div>
+              <span class="confidence">Ngưỡng tin cậy: 0,50</span>
+            </div>
+            <div class="uploadbar">
+              <div class="file"><span class="fileicon">▧</span><span><strong>duong-pho-ha-noi.jpg</strong><br>1920 × 1080 · 2,4 MB</span></div>
+              <button class="button">＋ Phân tích tệp khác</button>
+            </div>
+          </section>
+
+          <aside class="panel">
+            <div class="panelhead"><span class="paneltitle">Tóm tắt phân tích</span><span style="color:#18a77d;font-size:9px;font-weight:800">● HOÀN TẤT</span></div>
+            <div class="stats">
+              <div class="stat"><div class="statnum">01</div><div class="statlabel">Biển báo phát hiện</div></div>
+              <div class="stat"><div class="statnum">96%</div><div class="statlabel">Độ tin cậy cao nhất</div></div>
+              <div class="stat"><div class="statnum">42<span style="font-size:10px"> ms</span></div><div class="statlabel">Thời gian suy luận</div></div>
+              <div class="stat"><div class="statnum">82</div><div class="statlabel">Lớp được hỗ trợ</div></div>
+            </div>
+            <div style="padding:0 14px 8px;font-size:9px;font-weight:850;color:#6c798a;text-transform:uppercase;letter-spacing:.08em">Đối tượng nhận dạng</div>
+            <div class="detect">
+              <div class="row"><div class="mini">50</div><div><div class="rname">Giới hạn tốc độ 50 km/h</div><div class="rcode">Mã lớp: P.127-50</div></div><div class="score">96%</div></div>
+            </div>
+            <div class="notice"><span>ⓘ</span><span>Kết quả AI mang tính hỗ trợ. Độ chính xác có thể giảm khi biển báo nhỏ, bị che khuất hoặc ảnh thiếu sáng.</span></div>
+            <div style="display:flex;gap:8px;padding:0 14px 14px"><button class="button" style="flex:1;background:#101f3c;box-shadow:none">↓ Tải ảnh kết quả</button><button class="button" style="background:#fff;color:#536175;border:1px solid #dfe5ec;box-shadow:none">CSV</button></div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <h3 style="margin-top:28px">Hướng giao diện này có phù hợp không?</h3>
+  <div class="options">
+    <div class="option" data-choice="approve-interface" onclick="toggleSelect(this)">
+      <div class="letter">✓</div><div class="content"><h3>Duyệt mockup</h3><p>Giữ bố cục, màu sắc và các thành phần chính như trên.</p></div>
+    </div>
+    <div class="option" data-choice="revise-interface" onclick="toggleSelect(this)">
+      <div class="letter">↺</div><div class="content"><h3>Yêu cầu chỉnh sửa</h3><p>Mô tả thay đổi mong muốn trong cửa sổ trò chuyện.</p></div>
+    </div>
+  </div>
+</div>

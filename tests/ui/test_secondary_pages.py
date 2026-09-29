@@ -126,6 +126,43 @@ def test_model_info_page_details(tmp_path: Path, monkeypatch):
     assert any("baseline" in w.value.lower() for w in at.warning)
 
 
+def test_model_info_page_backups_and_rollback(tmp_path: Path, monkeypatch):
+    from tests.ui.test_training_page import create_test_candidate
+
+    monkeypatch.setenv("TRAFFICVISION_ROOT", str(tmp_path))
+    paths, baseline_manifest = setup_test_environment(tmp_path)
+
+    # Promote a candidate to create a backup of baseline
+    cand_dir = create_test_candidate(paths.runs, run_id="cand_backup_test")
+    reg = ModelRegistry(paths)
+    reg.promote_candidate(cand_dir)
+
+    app_path = str(Path(__file__).parents[2] / "app.py")
+    at = AppTest.from_file(app_path, default_timeout=25)
+    at.run()
+    at.sidebar.radio[0].set_value("Thông tin mô hình").run()
+    assert not at.exception
+
+    # Assert 82 classes shown for promoted model
+    all_text = " ".join([m.value for m in at.markdown])
+    assert "82 lớp" in all_text or "production" in all_text.lower()
+
+    # Verify backup exists in table or selectbox
+    assert len(at.dataframe) >= 2  # classes table and backups table
+    assert len(at.selectbox) >= 1
+
+    # Click rollback button
+    rollback_btns = [b for b in at.button if "rollback" in b.label.lower() or "phục hồi" in b.label.lower()]
+    assert len(rollback_btns) >= 1
+    rollback_btns[0].click().run()
+    assert not at.exception
+
+    # Check restored production model is back to baseline
+    restored = reg.get_production()
+    assert restored.manifest.model_id == baseline_manifest.model_id
+    assert len(restored.manifest.class_names) == 3
+
+
 def test_settings_page_persistence(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("TRAFFICVISION_ROOT", str(tmp_path))
     setup_test_environment(tmp_path)
@@ -142,7 +179,7 @@ def test_settings_page_persistence(tmp_path: Path, monkeypatch):
     assert len(at.button) >= 1
 
 
-def test_training_placeholder_page(tmp_path: Path, monkeypatch):
+def test_training_navigation_page(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("TRAFFICVISION_ROOT", str(tmp_path))
     setup_test_environment(tmp_path)
 
@@ -161,6 +198,7 @@ def test_training_placeholder_page(tmp_path: Path, monkeypatch):
     assert "Huấn luyện" in all_text
     assert "Đánh giá" in all_text
 
-    # Must NOT have training start button
+    # Verify active training page buttons exist
     button_labels = [b.label.lower() for b in at.button]
-    assert not any("bắt đầu" in b or "start" in b or "train" in b for b in button_labels)
+    assert any("quét" in b or "mẫu" in b for b in button_labels)
+    assert any("bắt đầu" in b for b in button_labels)

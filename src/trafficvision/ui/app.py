@@ -12,8 +12,9 @@ from trafficvision.history import AnalysisRepository
 from trafficvision.registry import ModelRegistry
 from trafficvision.service import AnalysisService
 from trafficvision.settings import RuntimeSettingsStore
+from trafficvision.training.manager import TrainingManager
 from trafficvision.ui.pages.analysis import render_analysis_page
-from trafficvision.ui.theme import apply_theme
+from trafficvision.ui.theme import apply_theme, clean_html
 
 
 @dataclass
@@ -23,6 +24,7 @@ class AppServices:
     repository: AnalysisRepository
     settings_store: RuntimeSettingsStore
     analysis_service: AnalysisService
+    training_manager: TrainingManager | None = None
 
     def get_production_safe(self) -> RegisteredModel | None:
         try:
@@ -45,12 +47,14 @@ class AppServices:
             repository=repository,
             settings_store=settings_store,
         )
+        training_manager = TrainingManager(paths.runs)
         return cls(
             config=config,
             registry=registry,
             repository=repository,
             settings_store=settings_store,
             analysis_service=analysis_service,
+            training_manager=training_manager,
         )
 
 
@@ -67,41 +71,24 @@ def main() -> None:
     project_root = Path(root_env) if root_env else Path.cwd()
     services = AppServices.create(project_root)
 
-    # Sidebar Navigation and Metadata
+    # Sidebar Navigation and Metadata matching mockup
     with st.sidebar:
-        st.title("🚦 TrafficVision")
-        st.caption("Hệ thống nhận diện biển báo thông minh")
+        st.title("⌁ TrafficVision")
+        st.markdown(
+            clean_html("""
+            <div class="tv-navlabel">Không gian làm việc</div>
+            """),
+            unsafe_allow_html=True,
+        )
 
-        prod_model = services.get_production_safe()
-        if prod_model is not None:
-            num_classes = len(prod_model.manifest.class_names)
-            stage = prod_model.manifest.stage
-            st.markdown(
-                f"""
-                <div class="tv-card">
-                    <span class="tv-badge tv-badge-baseline">Mode: {stage.upper()}</span>
-                    <p style="margin-top: 0.5rem; font-size: 0.85rem;">
-                        <strong>Mô hình:</strong> {prod_model.manifest.model_id}<br/>
-                        <strong>Số lớp:</strong> {num_classes} lớp
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                """
-                <div class="tv-card">
-                    <span class="tv-badge tv-badge-baseline">CHƯA CÀI ĐẶT</span>
-                    <p style="margin-top: 0.5rem; font-size: 0.85rem;">
-                        Chưa có mô hình production. Chạy bootstrap trước khi suy luận.
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        st.divider()
+        nav_labels = {
+            "Phân tích": "◫ &nbsp; Phân tích",
+            "Lịch sử": "◷ &nbsp; Lịch sử",
+            "Thống kê": "▥ &nbsp; Thống kê",
+            "Huấn luyện AI": "◉ &nbsp; Huấn luyện AI",
+            "Thông tin mô hình": "◎ &nbsp; Thông tin mô hình",
+            "Thiết lập": "⚙ &nbsp; Thiết lập",
+        }
 
         pages = [
             "Phân tích",
@@ -111,17 +98,71 @@ def main() -> None:
             "Thông tin mô hình",
             "Thiết lập",
         ]
-        choice = st.radio("Menu", pages, index=0)
+        choice = st.radio(
+            "Menu",
+            pages,
+            index=0,
+            format_func=lambda x: nav_labels.get(x, x),
+            label_visibility="collapsed",
+        )
+
+        prod_model = services.get_production_safe()
+        if prod_model is not None:
+            num_classes = len(prod_model.manifest.class_names)
+            stage = prod_model.manifest.stage
+            is_baseline = (
+                stage == "baseline"
+                or (
+                    prod_model.manifest.source_model_id
+                    and "baseline" in prod_model.manifest.source_model_id
+                )
+                or (
+                    "yolo11n" in prod_model.manifest.source.lower()
+                    and num_classes != 82
+                )
+            )
+
+            pulse_class = "tv-pulse-amber" if is_baseline else "tv-pulse"
+            status_text = (
+                "Baseline (Chưa fine-tune)" if is_baseline else "Mô hình sẵn sàng"
+            )
+            class_meta = (
+                f"{num_classes} lớp đối tượng"
+                if num_classes != 82
+                else "82 lớp biển báo Việt Nam"
+            )
+
+            st.markdown(
+                clean_html(f"""
+                <div class="tv-modelcard">
+                    <div class="tv-online"><span class="{pulse_class}"></span> {status_text}</div>
+                    <div class="tv-modelname">{prod_model.manifest.model_id} · {prod_model.manifest.backend.upper()}</div>
+                    <div class="tv-modelmeta">{class_meta}</div>
+                </div>
+                """),
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                clean_html("""
+                <div class="tv-modelcard">
+                    <div class="tv-online"><span class="tv-pulse-amber"></span> Chưa cài đặt mô hình</div>
+                    <div class="tv-modelname">Chưa có Production</div>
+                    <div class="tv-modelmeta">Chạy bootstrap để nạp baseline</div>
+                </div>
+                """),
+                unsafe_allow_html=True,
+            )
 
     # Routing
     if choice == "Phân tích":
         render_analysis_page(services)
     elif choice == "Huấn luyện AI":
-        from trafficvision.ui.pages.training_placeholder import (
-            render_training_placeholder_page,
+        from trafficvision.ui.pages.training import (
+            render_training_page,
         )
 
-        render_training_placeholder_page(services)
+        render_training_page(services)
     elif choice == "Lịch sử":
         from trafficvision.ui.pages.history import render_history_page
 

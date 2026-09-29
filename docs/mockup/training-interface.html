@@ -1,0 +1,133 @@
+<style>
+  #lab { --ink:#132238; --muted:#718096; --line:#e3e9f1; --blue:#2563eb; color:var(--ink); }
+  #lab * { box-sizing:border-box; }
+  #lab .app { overflow:hidden; border:1px solid #dce3ec; border-radius:22px; background:#f5f7fb; box-shadow:0 24px 60px rgba(20,36,60,.15); }
+  #lab .body { display:grid; grid-template-columns:190px 1fr; min-height:680px; }
+  #lab .side { padding:24px 15px; color:#d8e5f7; background:linear-gradient(180deg,#0b1730,#101f3c); }
+  #lab .brand { display:flex; align-items:center; gap:10px; padding:0 8px 26px; color:white; font-size:17px; font-weight:850; }
+  #lab .mark { display:grid; place-items:center; width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg,#29d2c8,#3182ff); }
+  #lab .nav { padding:10px; margin:4px 0; border-radius:9px; color:#9fb0c8; font-size:12px; }
+  #lab .nav.active { color:white; background:rgba(65,129,255,.18); box-shadow:inset 3px 0 #48cfc7; }
+  #lab .main { padding:23px 25px; }
+  #lab .top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:18px; }
+  #lab .eyebrow { color:var(--blue); font-size:9px; font-weight:850; letter-spacing:.14em; text-transform:uppercase; }
+  #lab h1 { margin:5px 0 3px; font-size:23px; letter-spacing:-.035em; }
+  #lab .desc { margin:0; color:var(--muted); font-size:11px; }
+  #lab .gpu { padding:8px 11px; border:1px solid #bfe6d4; border-radius:99px; color:#157557; background:#edfaf4; font-size:9px; font-weight:800; }
+  #lab .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:14px; }
+  #lab .step { padding:11px; border:1px solid var(--line); border-radius:11px; color:#8390a2; background:#fff; font-size:9px; font-weight:750; }
+  #lab .step b { display:inline-grid; place-items:center; width:21px; height:21px; margin-right:6px; border-radius:50%; color:#fff; background:#aeb9c8; }
+  #lab .step.done { color:#177456; border-color:#bce5d3; background:#f3fcf8; }
+  #lab .step.done b { background:#29b681; }
+  #lab .step.active { color:#1f5ac6; border-color:#b9cdfa; background:#f3f7ff; }
+  #lab .step.active b { background:#2e6ce2; box-shadow:0 0 0 4px #dbe8ff; }
+  #lab .grid { display:grid; grid-template-columns:280px 1fr; gap:14px; }
+  #lab .panel { overflow:hidden; border:1px solid var(--line); border-radius:15px; background:white; box-shadow:0 6px 18px rgba(33,49,75,.04); }
+  #lab .head { display:flex; align-items:center; justify-content:space-between; padding:13px 15px; border-bottom:1px solid var(--line); font-size:11px; font-weight:850; }
+  #lab .content { padding:14px; }
+  #lab .field { margin-bottom:12px; }
+  #lab .field label { display:block; margin-bottom:5px; color:#657387; font-size:8px; font-weight:850; letter-spacing:.05em; text-transform:uppercase; }
+  #lab .input { display:flex; justify-content:space-between; padding:9px 10px; border:1px solid #dfe5ec; border-radius:8px; color:#344258; background:#fafbfc; font-size:9px; }
+  #lab .twocol { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  #lab .check { display:flex; align-items:center; gap:8px; padding:9px; border-radius:8px; color:#536176; background:#f5f8fb; font-size:9px; }
+  #lab .tick { display:grid; place-items:center; width:15px; height:15px; border-radius:4px; color:#fff; background:#2563eb; font-size:8px; }
+  #lab .button { width:100%; padding:10px; border:0; border-radius:9px; color:white; background:linear-gradient(135deg,#2563eb,#2876ef); box-shadow:0 8px 18px rgba(37,99,235,.23); font-size:10px; font-weight:850; }
+  #lab .metricrow { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-bottom:12px; }
+  #lab .metric { padding:11px; border-radius:10px; background:#f6f8fb; }
+  #lab .num { font-size:18px; font-weight:900; letter-spacing:-.04em; }
+  #lab .label { margin-top:3px; color:#7e8a9a; font-size:8px; }
+  #lab .chart { position:relative; height:185px; padding:10px; border:1px solid #edf0f4; border-radius:10px; background:linear-gradient(#fff,#fbfcfe); }
+  #lab .chart:before { content:""; position:absolute; inset:24px 12px; background:repeating-linear-gradient(0deg,transparent 0 31px,#edf1f5 32px),repeating-linear-gradient(90deg,transparent 0 62px,#f2f4f7 63px); }
+  #lab svg { position:absolute; inset:20px 12px; width:calc(100% - 24px); height:140px; overflow:visible; }
+  #lab .legend { position:absolute; right:16px; top:10px; display:flex; gap:10px; color:#778496; font-size:8px; }
+  #lab .dot { display:inline-block; width:7px; height:7px; margin-right:4px; border-radius:50%; }
+  #lab .progress { margin-top:12px; }
+  #lab .proghead { display:flex; justify-content:space-between; margin-bottom:6px; color:#657387; font-size:9px; }
+  #lab .track { height:8px; overflow:hidden; border-radius:99px; background:#edf1f5; }
+  #lab .fill { width:64%; height:100%; border-radius:99px; background:linear-gradient(90deg,#2563eb,#20c3b5); }
+  #lab .log { margin-top:10px; padding:10px; border-radius:9px; color:#97a9bd; background:#0c1930; font:8px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  #lab .log strong { color:#62dfb2; }
+  #lab .footergrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px; }
+  #lab .smallbox { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+  #lab .smalltitle { font-size:10px; font-weight:850; }
+  #lab .smalltext { margin-top:3px; color:#8591a1; font-size:8px; }
+  #lab .tag { padding:5px 7px; border-radius:6px; color:#225fbc; background:#edf4ff; font-size:8px; font-weight:850; }
+  @media(max-width:850px){#lab .body{grid-template-columns:1fr}#lab .side{display:none}#lab .grid{grid-template-columns:1fr}#lab .steps{grid-template-columns:1fr 1fr}}
+</style>
+
+<div id="lab">
+  <h2>Mockup bổ sung — Phòng thí nghiệm AI</h2>
+  <p class="subtitle">Trang huấn luyện được tích hợp trong cùng ứng dụng, nhưng công việc dài hạn chạy ở tiến trình nền độc lập.</p>
+
+  <div class="app">
+    <div class="body">
+      <aside class="side">
+        <div class="brand"><span class="mark">⌁</span> TrafficVision</div>
+        <div class="nav">◫ &nbsp; Phân tích</div><div class="nav">◷ &nbsp; Lịch sử</div><div class="nav">▥ &nbsp; Thống kê</div>
+        <div class="nav active">◉ &nbsp; Huấn luyện AI</div><div class="nav">◎ &nbsp; Thông tin mô hình</div><div class="nav">⚙ &nbsp; Thiết lập</div>
+      </aside>
+
+      <main class="main">
+        <div class="top">
+          <div><div class="eyebrow">AI Experiment Lab</div><h1>Huấn luyện mô hình</h1><p class="desc">Cấu hình, theo dõi và quản lý toàn bộ thí nghiệm từ một nơi.</p></div>
+          <div class="gpu">● CUDA khả dụng · GTX 1050 Ti · 4 GB</div>
+        </div>
+
+        <div class="steps">
+          <div class="step done"><b>✓</b>Dữ liệu</div><div class="step done"><b>✓</b>Kiểm định</div><div class="step active"><b>3</b>Huấn luyện</div><div class="step"><b>4</b>Đánh giá &amp; xuất</div>
+        </div>
+
+        <div class="grid">
+          <section class="panel">
+            <div class="head"><span>Cấu hình thí nghiệm</span><span style="color:#79879a">⚙</span></div>
+            <div class="content">
+              <div class="field"><label>Bộ dữ liệu</label><div class="input"><span>VN Traffic Signs · 82 lớp</span><span>⌄</span></div></div>
+              <div class="field"><label>Mô hình nền</label><div class="input"><span>YOLO11n · pretrained</span><span>⌄</span></div></div>
+              <div class="twocol">
+                <div class="field"><label>Epoch</label><div class="input"><span>50</span></div></div>
+                <div class="field"><label>Batch size</label><div class="input"><span>4</span></div></div>
+                <div class="field"><label>Kích thước ảnh</label><div class="input"><span>640 px</span></div></div>
+                <div class="field"><label>Patience</label><div class="input"><span>10</span></div></div>
+              </div>
+              <div class="check"><span class="tick">✓</span> Mixed precision (AMP)</div>
+              <div class="check" style="margin-top:7px"><span class="tick">✓</span> Lưu checkpoint mỗi epoch</div>
+              <button class="button" style="margin-top:12px">Ⅱ &nbsp; Tạm dừng huấn luyện</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="head"><span>Tiến trình trực tiếp</span><span style="color:#168561">● ĐANG HUẤN LUYỆN</span></div>
+            <div class="content">
+              <div class="metricrow">
+                <div class="metric"><div class="num">32/50</div><div class="label">Epoch hiện tại</div></div>
+                <div class="metric"><div class="num">0,842</div><div class="label">mAP@50 tốt nhất</div></div>
+                <div class="metric"><div class="num">0,491</div><div class="label">Validation loss</div></div>
+                <div class="metric"><div class="num">1h 18m</div><div class="label">Thời gian còn lại</div></div>
+              </div>
+              <div class="chart">
+                <div class="legend"><span><i class="dot" style="background:#2563eb"></i>mAP@50</span><span><i class="dot" style="background:#20b9a8"></i>Precision</span></div>
+                <svg viewBox="0 0 500 140" preserveAspectRatio="none">
+                  <path d="M0 120 C35 116,55 94,82 99 S125 78,150 82 S195 55,220 64 S270 44,300 45 S350 31,378 35 S425 24,500 20" fill="none" stroke="#2563eb" stroke-width="3"/>
+                  <path d="M0 128 C30 119,55 110,82 112 S125 91,155 96 S205 69,234 73 S285 56,315 62 S365 44,405 47 S456 35,500 32" fill="none" stroke="#20b9a8" stroke-width="3"/>
+                </svg>
+              </div>
+              <div class="progress"><div class="proghead"><span>Hoàn thành 64%</span><strong>Epoch 32 đang chạy</strong></div><div class="track"><div class="fill"></div></div></div>
+              <div class="log"><strong>epoch 32/50</strong> · gpu_mem 3.41G · box_loss 0.724<br>precision 0.811 · recall 0.763 · mAP50 0.842<br>checkpoint saved → runs/train/exp-001/last.pt</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="footergrid">
+          <div class="smallbox"><div><div class="smalltitle">Checkpoint tốt nhất</div><div class="smalltext">best.pt · epoch 29 · 5 phút trước</div></div><span class="tag">SẴN SÀNG</span></div>
+          <div class="smallbox"><div><div class="smalltitle">Báo cáo thí nghiệm</div><div class="smalltext">Đường cong, confusion matrix, cấu hình và môi trường</div></div><span class="tag">TỰ ĐỘNG</span></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <h3 style="margin-top:27px">Có đưa trang huấn luyện này vào phạm vi chính thức không?</h3>
+  <div class="options">
+    <div class="option" data-choice="include-training-ui" onclick="toggleSelect(this)"><div class="letter">✓</div><div class="content"><h3>Đưa vào hệ thống</h3><p>Huấn luyện, theo dõi tiến trình và xuất mô hình ngay trên web.</p></div></div>
+    <div class="option" data-choice="revise-training-ui" onclick="toggleSelect(this)"><div class="letter">↺</div><div class="content"><h3>Cần chỉnh sửa</h3><p>Gửi yêu cầu thay đổi trong cửa sổ trò chuyện.</p></div></div>
+  </div>
+</div>

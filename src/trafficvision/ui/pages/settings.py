@@ -5,19 +5,42 @@ from typing import TYPE_CHECKING
 import streamlit as st
 
 from trafficvision.settings import RuntimeSettings
+from trafficvision.ui.theme import clean_html
 
 if TYPE_CHECKING:
     from trafficvision.ui.app import AppServices
 
 
 def render_settings_page(services: AppServices) -> None:
-    st.title("⚙️ Thiết lập hệ thống")
-    st.caption("Tùy chỉnh ngưỡng suy luận AI và giới hạn kích thước tệp tải lên.")
-
+    """Render runtime settings form with mockup design consistency."""
     current = services.settings_store.load()
 
+    st.markdown(
+        clean_html("""
+        <div class="tv-top">
+            <div>
+                <div class="tv-eyebrow">Preferences & Thresholds</div>
+                <h1 class="tv-title">Thiết lập hệ thống</h1>
+                <p class="tv-desc">Tùy chỉnh ngưỡng suy luận AI và giới hạn kích thước tệp tải lên.</p>
+            </div>
+            <div class="tv-top-actions">
+                <span class="tv-pill">● Cấu hình cục bộ</span>
+                <span class="tv-avatar">PVN</span>
+            </div>
+        </div>
+        """),
+        unsafe_allow_html=True,
+    )
+
     with st.form("settings_form"):
-        st.subheader("1. Ngưỡng suy luận mô hình")
+        st.markdown(
+            clean_html("""
+            <div style="font-size:13px; font-weight:800; color:#132238; margin-bottom: 8px;">
+                1. Ngưỡng suy luận mô hình
+            </div>
+            """),
+            unsafe_allow_html=True,
+        )
         col_c, col_i = st.columns(2)
         with col_c:
             new_conf = st.slider(
@@ -38,7 +61,14 @@ def render_settings_page(services: AppServices) -> None:
                 help="Ngưỡng loại bỏ các hộp bao trùng lặp (Non-Maximum Suppression).",
             )
 
-        st.subheader("2. Giới hạn dung lượng tải lên")
+        st.markdown(
+            clean_html("""
+            <div style="font-size:13px; font-weight:800; color:#132238; margin: 16px 0 8px 0;">
+                2. Giới hạn dung lượng tải lên
+            </div>
+            """),
+            unsafe_allow_html=True,
+        )
         col_img, col_vid = st.columns(2)
         with col_img:
             img_mb = int(current.max_image_bytes / (1024 * 1024))
@@ -59,6 +89,7 @@ def render_settings_page(services: AppServices) -> None:
                 step=50,
             )
 
+        st.write("")
         btn_save = st.form_submit_button("💾 Lưu thiết lập", type="primary")
 
     if btn_save:

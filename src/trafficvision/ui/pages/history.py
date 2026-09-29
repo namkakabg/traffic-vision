@@ -5,21 +5,36 @@ from typing import TYPE_CHECKING
 import pandas as pd
 import streamlit as st
 
+from trafficvision.ui.theme import clean_html
+
 if TYPE_CHECKING:
     from trafficvision.ui.app import AppServices
 
 
 def render_history_page(services: AppServices) -> None:
-    st.title("📜 Lịch sử phân tích")
-    st.caption("Xem lại các phiên nhận dạng ảnh và video gần đây được lưu cục bộ.")
-
+    """Render analysis history page with mockup design consistency."""
     records = services.repository.list_recent(limit=100)
+
+    st.markdown(
+        clean_html(f"""
+        <div class="tv-top">
+            <div>
+                <div class="tv-eyebrow">Local Storage</div>
+                <h1 class="tv-title">Lịch sử phân tích</h1>
+                <p class="tv-desc">Xem lại các phiên nhận dạng ảnh và video gần đây được lưu trữ cục bộ.</p>
+            </div>
+            <div class="tv-top-actions">
+                <span class="tv-pill">● SQLite · {len(records)} phiên</span>
+                <span class="tv-avatar">PVN</span>
+            </div>
+        </div>
+        """),
+        unsafe_allow_html=True,
+    )
 
     if not records:
         st.info("ℹ️ Chưa có phiên phân tích nào được lưu trong lịch sử.")
         return
-
-    st.subheader(f"Gần đây ({len(records)} phiên)")
 
     rows = []
     for r in records:

@@ -22,6 +22,7 @@ from trafficvision.data.snapshot import (
     DatasetSnapshot,
     create_dataset_snapshot,
 )
+from trafficvision.data.synthetic import create_synthetic_dataset
 from trafficvision.data.validator import (
     ValidationErrorItem,
     ValidationReport,
@@ -43,6 +44,7 @@ __all__ = [
     "validate_dataset",
     "DatasetSnapshot",
     "create_dataset_snapshot",
+    "create_synthetic_dataset",
     "EDAMetrics",
     "generate_eda_report",
     "save_eda_summary",

@@ -44,12 +44,16 @@ class TrainingManager:
     ) -> None:
         if runs_dir is not None:
             self.runs_dir = Path(runs_dir).resolve()
-        elif paths is not None:
+            self.working_dir = Path.cwd().resolve()
+        elif isinstance(paths, AppPaths):
             self.runs_dir = paths.runs.resolve()
+            self.working_dir = paths.root.resolve()
+        elif paths is not None:
+            self.runs_dir = Path(paths).resolve()
+            self.working_dir = Path.cwd().resolve()
         else:
             self.runs_dir = Path("artifacts/runs").resolve()
-
-        self.working_dir = paths.root.resolve() if paths is not None else Path.cwd().resolve()
+            self.working_dir = Path.cwd().resolve()
         self.python_executable = (
             Path(python_executable).resolve() if python_executable else Path(sys.executable)
         )
