@@ -130,3 +130,79 @@ def test_registry_rejects_path_traversal_in_manifest(test_paths: AppPaths, tmp_p
 
     with pytest.raises(ModelSecurityError):
         registry.get_production()
+
+
+def test_rollback_empty_or_whitespace_backup_id_raises(test_paths: AppPaths):
+    registry = ModelRegistry(test_paths)
+    with pytest.raises(ModelNotFoundError, match="empty or whitespace"):
+        registry.rollback_to_backup("")
+
+    with pytest.raises(ModelNotFoundError, match="empty or whitespace"):
+        registry.rollback_to_backup("   \t  ")
+
+
+def test_promote_candidate_logs_critical_when_rollback_fails(
+    test_paths: AppPaths, tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+):
+    import logging
+
+    registry = ModelRegistry(test_paths)
+
+    # 1. Setup existing production model so a backup is created during promotion
+    model_src = tmp_path / "baseline.onnx"
+    model_src.write_bytes(b"baseline-onnx-bytes")
+    manifest = ModelManifest(
+        schema_version="1.0",
+        model_id="base-001",
+        stage="baseline",
+        artifact_filename="model.onnx",
+        backend="onnx",
+        task="detect",
+        class_names={i: f"c{i}" for i in range(82)},
+        imgsz=640,
+        sha256=sha256_file(model_src),
+        source="test",
+        created_at="2026-09-27T21:00:00Z",
+    )
+    registry.install_baseline(model_src, manifest)
+
+    # 2. Setup candidate dir with valid ONNX structure
+    cand_dir = tmp_path / "candidate"
+    cand_dir.mkdir(parents=True)
+    cand_model = cand_dir / "model.onnx"
+    cand_model.write_bytes(b"cand-onnx-bytes")
+    cand_manifest = ModelManifest(
+        schema_version="1.0",
+        model_id="cand-001",
+        stage="candidate",
+        artifact_filename="model.onnx",
+        backend="onnx",
+        task="detect",
+        class_names={i: f"c{i}" for i in range(82)},
+        imgsz=640,
+        sha256=sha256_file(cand_model),
+        source="test",
+        created_at="2026-09-27T21:00:00Z",
+    )
+    (cand_dir / "manifest.json").write_text(cand_manifest.model_dump_json(), encoding="utf-8")
+
+    # Mock onnx checker to pass
+    monkeypatch.setattr("onnx.checker.check_model", lambda path: None)
+
+    # Force verification of newly promoted model to fail, triggering rollback
+    def _fail_verify(self, model):
+        raise ModelIntegrityError("Simulated post-promotion failure")
+
+    # Force rollback to fail
+    def _fail_restore(self, backup_dir):
+        raise RuntimeError("Simulated rollback disk error")
+
+    monkeypatch.setattr(ModelRegistry, "verify", _fail_verify)
+    monkeypatch.setattr(ModelRegistry, "_restore_from_backup_dir", _fail_restore)
+
+    with caplog.at_level(logging.CRITICAL):
+        with pytest.raises(ModelIntegrityError, match="Simulated post-promotion failure"):
+            registry.promote_candidate(cand_dir)
+
+    assert "Failed to rollback to backup" in caplog.text
+

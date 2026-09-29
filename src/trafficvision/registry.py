@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import shutil
@@ -14,6 +15,8 @@ import onnx
 
 from trafficvision.config import AppPaths
 from trafficvision.domain import ModelManifest, RegisteredModel
+
+logger = logging.getLogger(__name__)
 
 
 class ModelRegistryError(Exception):
@@ -282,8 +285,8 @@ class ModelRegistry:
             if backup_dir is not None and backup_dir.is_dir():
                 try:
                     self._restore_from_backup_dir(backup_dir)
-                except Exception:
-                    pass
+                except Exception as rollback_err:
+                    logger.critical("Failed to rollback to backup %s: %s", backup_dir, rollback_err)
             else:
                 if self.paths.production.is_dir():
                     for item in self.paths.production.iterdir():
@@ -337,6 +340,9 @@ class ModelRegistry:
     def rollback_to_backup(self, backup_id: str | None = None) -> RegisteredModel:
         """Rollback production to a specified backup or the most recent backup."""
         self.paths.ensure_directories()
+
+        if backup_id is not None and not backup_id.strip():
+            raise ModelNotFoundError("backup_id cannot be an empty or whitespace string")
 
         if backup_id is None:
             backups = self.list_backups()

@@ -72,7 +72,9 @@ def create_dataset_snapshot(
 
     base_out = Path(output_dir).resolve()
     snapshot_dir = (base_out / snapshot_id).resolve()
-    snapshot_dir.mkdir(parents=True, exist_ok=True)
+    if snapshot_dir.exists():
+        raise FileExistsError(f"Snapshot directory already exists: {snapshot_dir}")
+    snapshot_dir.mkdir(parents=True, exist_ok=False)
 
     files_to_hash: list[Path] = []
 

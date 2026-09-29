@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from tests.fixtures.dataset_fixture import create_synthetic_dataset
@@ -243,3 +244,29 @@ def test_validation_error_item_attributes() -> None:
     assert item.code == "CORRUPT_IMAGE"
     assert item.message == "Zero byte image"
     assert item.file_path == Path("/tmp/test.png")
+
+
+@pytest.mark.parametrize(
+    "invalid_line",
+    [
+        "0 nan 0.5 0.2 0.2",
+        "0 0.5 inf 0.2 0.2",
+        "0 0.5 0.5 nan 0.2",
+        "0 0.5 0.5 0.2 -inf",
+    ],
+)
+def test_validate_nan_and_inf_coordinates(tmp_path: Path, invalid_line: str) -> None:
+    """Label lines with nan or inf coordinates must trigger INVALID_COORDINATES with has_blocking=True."""
+    data_dir = tmp_path / "nan_inf_dataset"
+    (data_dir / "train" / "images").mkdir(parents=True, exist_ok=True)
+    (data_dir / "train" / "labels").mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (32, 32)).save(data_dir / "train" / "images" / "img.png")
+    (data_dir / "train" / "labels" / "img.txt").write_text(f"{invalid_line}\n", encoding="utf-8")
+
+    items = scan_yolo_dataset(data_dir)
+    report = validate_dataset(items, VIETNAM_TRAFFIC_SIGN_CATALOG)
+
+    assert report.has_blocking is True
+    assert report.is_valid is False
+    assert any(e.code == "INVALID_COORDINATES" for e in report.blocking_errors)
+

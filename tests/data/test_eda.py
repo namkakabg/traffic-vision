@@ -216,3 +216,28 @@ def test_eda_empty_dataset_and_background_images(tmp_path: Path) -> None:
     assert eda_bg.split_summary["train"]["boxes"] == 0
     assert eda_bg.sample_image_manifest[0]["is_background"] is True
     assert len(eda_bg.sample_image_manifest[0]["boxes"]) == 0
+
+
+def test_eda_corrupt_or_zero_dimension_image_guarded(tmp_path: Path) -> None:
+    """EDA should not calculate physical pixel dimensions or increment COCO size distribution if image is invalid."""
+    img_dir = tmp_path / "train" / "images"
+    lbl_dir = tmp_path / "train" / "labels"
+    img_dir.mkdir(parents=True)
+    lbl_dir.mkdir(parents=True)
+
+    fake_img = img_dir / "corrupt.png"
+    fake_img.write_text("CORRUPT NOT AN IMAGE", encoding="utf-8")
+    fake_lbl = lbl_dir / "corrupt.txt"
+    fake_lbl.write_text("0 0.5 0.5 0.2 0.2\n", encoding="utf-8")
+
+    items = [DatasetItem(image_path=fake_img, label_path=fake_lbl, split="train")]
+    eda = generate_eda_report(items)
+
+    assert eda.size_distribution == {"small": 0, "medium": 0, "large": 0}
+    assert eda.bbox_stats["area"]["max"] == 0.0
+    box = eda.sample_image_manifest[0]["boxes"][0]
+    assert box["pixel_width"] is None
+    assert box["pixel_height"] is None
+    assert box["area_px"] is None
+    assert box["size_category"] is None
+

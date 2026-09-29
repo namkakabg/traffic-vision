@@ -166,31 +166,39 @@ def generate_eda_report(
                     total_boxes += 1
                     split_summary[split]["boxes"] += 1
 
-                    # Pixel dimensions and area
-                    pix_w = w * img_width
-                    pix_h = h * img_height
-                    box_area = pix_w * pix_h
+                    # Pixel dimensions and area only if valid image dimensions
+                    pix_w: float | None = None
+                    pix_h: float | None = None
+                    box_area: float | None = None
+                    category: str | None = None
 
-                    # COCO size category
-                    if box_area < COCO_SMALL_THRESHOLD:
-                        category = "small"
-                    elif box_area <= COCO_MEDIUM_THRESHOLD:
-                        category = "medium"
+                    if img_width > 0 and img_height > 0:
+                        pix_w = w * img_width
+                        pix_h = h * img_height
+                        box_area = pix_w * pix_h
+
+                        # COCO size category
+                        if box_area < COCO_SMALL_THRESHOLD:
+                            category = "small"
+                        elif box_area <= COCO_MEDIUM_THRESHOLD:
+                            category = "medium"
+                        else:
+                            category = "large"
+
+                        size_distribution[category] += 1
+                        areas.append(box_area)
+
+                        # Aspect ratio: width / height
+                        ar = round(pix_w / pix_h, 4) if pix_h > 0 else 0.0
+                        all_aspect_ratios.append(ar)
                     else:
-                        category = "large"
-
-                    size_distribution[category] += 1
-
-                    # Aspect ratio: width / height
-                    ar = round(pix_w / pix_h, 4) if pix_h > 0 else 0.0
-                    all_aspect_ratios.append(ar)
+                        ar = round(w / h, 4) if h > 0 else 0.0
 
                     # Accumulate for bbox stats
                     x_centers.append(x_c)
                     y_centers.append(y_c)
                     widths.append(w)
                     heights.append(h)
-                    areas.append(box_area)
 
                     cls_name = catalog_map.get(cls_id, f"Class {cls_id}")
                     item_boxes.append(
@@ -201,9 +209,9 @@ def generate_eda_report(
                             "y_center": round(y_c, 6),
                             "width": round(w, 6),
                             "height": round(h, 6),
-                            "pixel_width": round(pix_w, 2),
-                            "pixel_height": round(pix_h, 2),
-                            "area_px": round(box_area, 2),
+                            "pixel_width": round(pix_w, 2) if pix_w is not None else None,
+                            "pixel_height": round(pix_h, 2) if pix_h is not None else None,
+                            "area_px": round(box_area, 2) if box_area is not None else None,
                             "aspect_ratio": ar,
                             "size_category": category,
                         }

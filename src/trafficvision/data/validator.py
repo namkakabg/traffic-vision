@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -178,15 +179,15 @@ def validate_dataset(
                     continue
 
                 # Check normalized coordinates
-                if (
-                    x_c < 0.0
-                    or x_c > 1.0
-                    or y_c < 0.0
-                    or y_c > 1.0
-                    or w <= 0.0
-                    or w > 1.0
-                    or h <= 0.0
-                    or h > 1.0
+                if not (
+                    math.isfinite(x_c)
+                    and math.isfinite(y_c)
+                    and math.isfinite(w)
+                    and math.isfinite(h)
+                    and 0.0 <= x_c <= 1.0
+                    and 0.0 <= y_c <= 1.0
+                    and 0.0 < w <= 1.0
+                    and 0.0 < h <= 1.0
                 ):
                     blocking_errors.append(
                         ValidationErrorItem(

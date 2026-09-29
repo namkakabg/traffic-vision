@@ -140,3 +140,17 @@ def test_snapshot_custom_snapshot_id(tmp_path: Path) -> None:
     assert snapshot.snapshot_id == "snapshot_custom_001"
     assert snapshot.snapshot_dir.name == "snapshot_custom_001"
     assert snapshot.snapshot_dir.is_dir()
+
+
+def test_snapshot_directory_already_exists_raises(tmp_path: Path) -> None:
+    """create_dataset_snapshot must raise FileExistsError if snapshot_dir already exists."""
+    data_dir = create_synthetic_dataset(tmp_path / "clean_data", num_samples=3)
+    items = scan_yolo_dataset(data_dir)
+    report = validate_dataset(items, VIETNAM_TRAFFIC_SIGN_CATALOG)
+
+    output_dir = tmp_path / "snapshots"
+    create_dataset_snapshot(items, output_dir, report, snapshot_id="snapshot_immutable_001")
+
+    with pytest.raises(FileExistsError, match="Snapshot directory already exists"):
+        create_dataset_snapshot(items, output_dir, report, snapshot_id="snapshot_immutable_001")
+
