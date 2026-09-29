@@ -372,29 +372,75 @@ CUSTOM_CSS = f"""
     /* Buttons */
     .stButton > button {{
         border-radius: 9px !important;
-        font-weight: 750 !important;
-        font-size: 12px !important;
-        padding: 8px 16px !important;
+        font-weight: 700 !important;
+        font-size: 12.5px !important;
+        padding: 8px 18px !important;
         transition: all 0.15s ease-in-out !important;
+        cursor: pointer !important;
     }}
     .stButton > button[kind="primary"] {{
         background: {BLUE_GRADIENT} !important;
         border: none !important;
         color: #ffffff !important;
-        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.22) !important;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28) !important;
     }}
     .stButton > button[kind="primary"]:hover {{
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35) !important;
+        box-shadow: 0 8px 22px rgba(37, 99, 235, 0.42) !important;
         transform: translateY(-1px);
+        color: #ffffff !important;
+    }}
+    .stButton > button:not([kind="primary"]) {{
+        background: #ffffff !important;
+        border: 1.5px solid {BORDER_COLOR} !important;
+        color: #1e293b !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+    }}
+    .stButton > button:not([kind="primary"]):hover {{
+        background: #f8fafc !important;
+        border-color: #94a3b8 !important;
+        color: {BLUE_PRIMARY} !important;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08) !important;
+    }}
+
+    /* Form Submit Button */
+    button[kind="primaryFormSubmit"],
+    .stFormSubmitButton > button {{
+        background: {BLUE_GRADIENT} !important;
+        border: none !important;
+        color: #ffffff !important;
+        font-weight: 750 !important;
+        font-size: 13px !important;
+        border-radius: 9px !important;
+        padding: 9px 22px !important;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28) !important;
+        transition: all 0.15s ease-in-out !important;
+    }}
+    button[kind="primaryFormSubmit"]:hover,
+    .stFormSubmitButton > button:hover {{
+        box-shadow: 0 8px 22px rgba(37, 99, 235, 0.42) !important;
+        transform: translateY(-1px);
+        color: #ffffff !important;
     }}
 
     /* Download Buttons */
     .stDownloadButton > button {{
         border-radius: 9px !important;
-        font-weight: 750 !important;
+        font-weight: 700 !important;
         font-size: 12px !important;
         padding: 8px 16px !important;
+        background: #ffffff !important;
+        border: 1.5px solid {BORDER_COLOR} !important;
+        color: #1e293b !important;
         transition: all 0.15s ease-in-out !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
+    }}
+    .stDownloadButton > button:hover {{
+        background: #f8fafc !important;
+        border-color: {BLUE_PRIMARY} !important;
+        color: {BLUE_PRIMARY} !important;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(37, 99, 235, 0.15) !important;
     }}
 
     /* Stepper for Training */
@@ -527,22 +573,424 @@ CUSTOM_CSS = f"""
         font-weight: 850;
     }}
 
+    /* ============================================================ */
+    /* Form Inputs & Controls Styling (High Contrast & Modern UI)   */
+    /* ============================================================ */
+
+    /* Input Labels */
+    [data-testid="stWidgetLabel"] label,
+    [data-testid="stWidgetLabel"] p,
+    label[data-testid="stWidgetLabel"] {{
+        color: #0f172a !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em !important;
+        margin-bottom: 5px !important;
+    }}
+    [data-testid="stWidgetLabel"] svg {{
+        fill: #64748b !important;
+    }}
+
+    /* Text Inputs, Number Inputs, Text Areas */
+    div[data-testid="stTextInput"] input,
+    div[data-testid="stNumberInput"] input,
+    div[data-testid="stTextArea"] textarea,
+    div[data-baseweb="input"] input,
+    div[data-baseweb="base-input"] input,
+    div[data-baseweb="textarea"] textarea {{
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        -webkit-text-fill-color: #0f172a !important;
+        caret-color: {BLUE_PRIMARY} !important;
+        font-size: 13.5px !important;
+        font-weight: 500 !important;
+        border: 1.5px solid #cbd5e1 !important;
+        border-radius: 9px !important;
+        padding: 9px 13px !important;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease !important;
+    }}
+
+    /* BaseWeb Input Wrappers */
+    div[data-baseweb="input"],
+    div[data-baseweb="base-input"] {{
+        background-color: #ffffff !important;
+        border-radius: 9px !important;
+        border: none !important;
+    }}
+
+    /* Hover & Focus state for inputs */
+    div[data-testid="stTextInput"] input:hover,
+    div[data-testid="stNumberInput"] input:hover,
+    div[data-testid="stTextArea"] textarea:hover,
+    div[data-baseweb="input"]:hover input,
+    div[data-baseweb="base-input"]:hover input {{
+        border-color: #94a3b8 !important;
+    }}
+
+    div[data-testid="stTextInput"] input:focus,
+    div[data-testid="stNumberInput"] input:focus,
+    div[data-testid="stTextArea"] textarea:focus,
+    div[data-baseweb="input"]:focus-within input,
+    div[data-baseweb="base-input"]:focus-within input {{
+        border-color: {BLUE_PRIMARY} !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18) !important;
+        outline: none !important;
+    }}
+
+    /* Placeholders */
+    input::placeholder,
+    textarea::placeholder,
+    [data-baseweb="input"] input::placeholder,
+    [data-baseweb="base-input"] input::placeholder {{
+        color: #94a3b8 !important;
+        -webkit-text-fill-color: #94a3b8 !important;
+        opacity: 1 !important;
+        font-weight: 400 !important;
+    }}
+
+    /* Number Input Stepper (+ / -) Buttons */
+    div[data-testid="stNumberInput"] button,
+    div[data-testid="stNumberInputStepUp"],
+    div[data-testid="stNumberInputStepDown"],
+    div[data-testid="stNumberInputContainer"] button {{
+        background-color: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #1e293b !important;
+        border-radius: 6px !important;
+        margin: 2px !important;
+        transition: all 0.15s ease !important;
+    }}
+    div[data-testid="stNumberInput"] button:hover,
+    div[data-testid="stNumberInputStepUp"]:hover,
+    div[data-testid="stNumberInputStepDown"]:hover,
+    div[data-testid="stNumberInputContainer"] button:hover {{
+        background-color: #eff6ff !important;
+        border-color: #93c5fd !important;
+        color: {BLUE_PRIMARY} !important;
+    }}
+    div[data-testid="stNumberInput"] button svg,
+    div[data-testid="stNumberInputStepUp"] svg,
+    div[data-testid="stNumberInputStepDown"] svg {{
+        fill: #334155 !important;
+        stroke: #334155 !important;
+    }}
+    div[data-testid="stNumberInput"] button:hover svg,
+    div[data-testid="stNumberInputStepUp"]:hover svg,
+    div[data-testid="stNumberInputStepDown"]:hover svg {{
+        fill: {BLUE_PRIMARY} !important;
+        stroke: {BLUE_PRIMARY} !important;
+    }}
+
+    /* Selectbox & Dropdown Menus */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"],
+    div[data-baseweb="select"] {{
+        background-color: #ffffff !important;
+        border-radius: 9px !important;
+    }}
+    div[data-baseweb="select"] > div {{
+        background-color: #ffffff !important;
+        border: 1.5px solid #cbd5e1 !important;
+        border-radius: 9px !important;
+        color: #0f172a !important;
+        font-size: 13.5px !important;
+        font-weight: 500 !important;
+        min-height: 40px !important;
+        padding: 2px 6px !important;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+    }}
+    div[data-baseweb="select"] > div:hover {{
+        border-color: #94a3b8 !important;
+    }}
+    div[data-baseweb="select"]:focus-within > div {{
+        border-color: {BLUE_PRIMARY} !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18) !important;
+    }}
+    div[data-baseweb="select"] div[role="combobox"] {{
+        color: #0f172a !important;
+        font-weight: 500 !important;
+    }}
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div {{
+        color: #0f172a !important;
+    }}
+    div[data-baseweb="select"] svg {{
+        fill: #475569 !important;
+    }}
+
+    /* Dropdown Popover List */
+    div[data-baseweb="popover"] {{
+        background-color: #ffffff !important;
+        border-radius: 10px !important;
+        box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.12), 0 6px 12px -4px rgba(15, 23, 42, 0.06) !important;
+        border: 1px solid #e2e8f0 !important;
+    }}
+    div[data-baseweb="popover"] ul[role="listbox"] {{
+        background-color: #ffffff !important;
+        padding: 6px !important;
+    }}
+    div[data-baseweb="popover"] li[role="option"] {{
+        background-color: transparent !important;
+        color: #0f172a !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        border-radius: 7px !important;
+        padding: 8px 12px !important;
+        margin: 2px 0 !important;
+        transition: background-color 0.1s ease !important;
+    }}
+    div[data-baseweb="popover"] li[role="option"]:hover,
+    div[data-baseweb="popover"] li[role="option"][aria-selected="true"] {{
+        background-color: #eff6ff !important;
+        color: {BLUE_PRIMARY} !important;
+        font-weight: 650 !important;
+    }}
+
+    /* File Uploader */
+    [data-testid="stFileUploader"] section {{
+        background: #ffffff !important;
+        border: 2px dashed #cbd5e1 !important;
+        border-radius: 14px !important;
+        padding: 24px 16px !important;
+        text-align: center !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02) !important;
+    }}
+    [data-testid="stFileUploader"] section:hover {{
+        border-color: {BLUE_PRIMARY} !important;
+        background: #f8faff !important;
+    }}
+    [data-testid="stFileUploader"] section div,
+    [data-testid="stFileUploader"] section span,
+    [data-testid="stFileUploader"] section small {{
+        color: #475569 !important;
+    }}
+    [data-testid="stFileUploader"] button {{
+        background: #ffffff !important;
+        border: 1.5px solid #cbd5e1 !important;
+        color: #1e293b !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        padding: 6px 16px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }}
+    [data-testid="stFileUploader"] button:hover {{
+        border-color: {BLUE_PRIMARY} !important;
+        color: {BLUE_PRIMARY} !important;
+        background: #eff6ff !important;
+    }}
+    [data-testid="stFileUploaderFile"] {{
+        background: #f1f5f9 !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 9px !important;
+        color: #0f172a !important;
+        font-weight: 500 !important;
+        padding: 8px 12px !important;
+    }}
+    [data-testid="stFileUploaderFile"] * {{
+        color: #0f172a !important;
+    }}
+
+    /* Upload Bar */
+    .tv-uploadbar {{
+        margin: 10px 0 14px 0;
+        padding: 10px 14px;
+        background: #f8fafc;
+        border: 1px solid {BORDER_COLOR};
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }}
+    .tv-file {{
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: {TEXT_DARK};
+        font-size: 11px;
+    }}
+
+    /* Form Container */
+    [data-testid="stForm"] {{
+        background: #ffffff !important;
+        border: 1px solid {BORDER_COLOR} !important;
+        border-radius: 14px !important;
+        padding: 20px 22px !important;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03) !important;
+    }}
+
+    /* Sliders */
+    [data-testid="stSlider"] div[data-baseweb="slider"] {{
+        padding: 8px 0 !important;
+    }}
+    [data-testid="stSlider"] [role="slider"] {{
+        background-color: {BLUE_PRIMARY} !important;
+        border: 2px solid #ffffff !important;
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.45) !important;
+        width: 18px !important;
+        height: 18px !important;
+    }}
+    [data-testid="stSlider"] div[data-testid="stMarkdownContainer"] p {{
+        color: #0f172a !important;
+        font-weight: 650 !important;
+    }}
+
+    /* Checkbox */
+    [data-testid="stCheckbox"] label span {{
+        color: #1e293b !important;
+        font-size: 13px !important;
+        font-weight: 550 !important;
+    }}
+    [data-testid="stCheckbox"] [data-checked="true"] {{
+        background-color: {BLUE_PRIMARY} !important;
+    }}
+
+    /* Expanders */
+    [data-testid="stExpander"] {{
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03) !important;
+        overflow: hidden !important;
+        margin-bottom: 14px !important;
+    }}
+    [data-testid="stExpander"] summary {{
+        color: #0f172a !important;
+        font-weight: 700 !important;
+        font-size: 13px !important;
+        padding: 12px 16px !important;
+        background: #ffffff !important;
+        border-radius: 12px !important;
+        transition: color 0.15s ease, background 0.15s ease !important;
+    }}
+    [data-testid="stExpander"] summary:hover {{
+        color: {BLUE_PRIMARY} !important;
+        background: #f8fafc !important;
+    }}
+    [data-testid="stExpander"] summary svg {{
+        fill: #64748b !important;
+    }}
+    [data-testid="stExpander"] [data-testid="stExpanderDetails"] {{
+        padding: 16px !important;
+        border-top: 1px solid #edf1f6 !important;
+    }}
+
+    /* Metric Cards */
+    [data-testid="stMetric"] {{
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        padding: 14px 18px !important;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03) !important;
+        transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+    }}
+    [data-testid="stMetric"]:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06) !important;
+    }}
+    [data-testid="stMetricLabel"] p {{
+        color: #64748b !important;
+        font-size: 11px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.06em !important;
+    }}
+    [data-testid="stMetricValue"] {{
+        color: #0f172a !important;
+        font-weight: 850 !important;
+        font-size: 26px !important;
+        letter-spacing: -0.04em !important;
+    }}
+
+    /* Alerts */
+    [data-testid="stAlert"] {{
+        border-radius: 11px !important;
+        font-size: 12.5px !important;
+        font-weight: 550 !important;
+        border: 1px solid rgba(0, 0, 0, 0.06) !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02) !important;
+        padding: 12px 16px !important;
+    }}
+    [data-testid="stAlert"] p {{
+        font-size: 12.5px !important;
+        line-height: 1.5 !important;
+    }}
+
+    /* Progress Bar */
+    [data-testid="stProgress"] > div {{
+        background-color: #e2e8f0 !important;
+        border-radius: 99px !important;
+        height: 8px !important;
+        overflow: hidden !important;
+    }}
+    [data-testid="stProgress"] div[role="progressbar"] {{
+        background: linear-gradient(90deg, #2563eb, #38bdf8) !important;
+        border-radius: 99px !important;
+    }}
+
+    /* Dataframe / Tables */
+    [data-testid="stDataFrame"] {{
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 11px !important;
+        overflow: hidden !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02) !important;
+    }}
+
+    /* Sidebar specific input adjustments if placed in sidebar */
+    [data-testid="stSidebar"] div[data-baseweb="input"] input,
+    [data-testid="stSidebar"] div[data-baseweb="select"] > div {{
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        color: #ffffff !important;
+        border-color: rgba(255, 255, 255, 0.18) !important;
+    }}
+
+    /* Code elements */
+    code {{
+        background: #eef2f7 !important;
+        color: #0f172a !important;
+        padding: 2px 6px !important;
+        border-radius: 5px !important;
+        font-size: 88% !important;
+        border: 1px solid #e2e8f0 !important;
+    }}
+
+    /* Sleek Custom Scrollbars */
+    ::-webkit-scrollbar {{
+        width: 7px;
+        height: 7px;
+    }}
+    ::-webkit-scrollbar-track {{
+        background: transparent;
+    }}
+    ::-webkit-scrollbar-thumb {{
+        background: #cbd5e1;
+        border-radius: 99px;
+    }}
+    ::-webkit-scrollbar-thumb:hover {{
+        background: #94a3b8;
+    }}
+
     /* Card styling for other pages */
     .tv-card {{
         background: #ffffff;
-        border-radius: 12px;
-        padding: 1.25rem;
+        border-radius: 14px;
+        padding: 1.5rem;
         border: 1px solid {BORDER_COLOR};
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-        margin-bottom: 1rem;
+        box-shadow: 0 4px 14px rgba(33, 49, 75, 0.04);
+        margin-bottom: 1.2rem;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }}
+    .tv-card:hover {{
+        box-shadow: 0 8px 24px rgba(33, 49, 75, 0.07);
     }}
 
     .tv-badge {{
         display: inline-block;
-        padding: 0.25rem 0.6rem;
-        border-radius: 6px;
+        padding: 0.3rem 0.7rem;
+        border-radius: 7px;
         font-size: 0.8rem;
-        font-weight: 700;
+        font-weight: 750;
         letter-spacing: 0.03em;
     }}
     .tv-badge-baseline {{
