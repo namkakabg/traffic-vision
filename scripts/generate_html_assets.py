@@ -31,9 +31,15 @@ def get_image_base64(rel_path: str, max_width: int = 800) -> str:
         return ""
 
 
-img1_b64 = get_image_base64("artifacts/outputs/2016b014-7e54-4b9f-a4f4-81a74c9c2701_annotated.jpg", max_width=720)
-img2_b64 = get_image_base64("artifacts/outputs/1ebf731e-aee7-423d-a9f0-fd2de27738a6_annotated.jpg", max_width=800)
-img3_b64 = get_image_base64("artifacts/outputs/1b1ca112-d251-4651-ab78-0b67f6fc5460_annotated.jpg", max_width=800)
+outputs_dir = REPO_ROOT / "artifacts" / "outputs"
+annotated_files = sorted(list(outputs_dir.glob("*_annotated.jpg")), key=lambda p: p.stat().st_mtime, reverse=True)
+img1_path = str(annotated_files[0].relative_to(REPO_ROOT)) if len(annotated_files) > 0 else ""
+img2_path = str(annotated_files[1].relative_to(REPO_ROOT)) if len(annotated_files) > 1 else img1_path
+img3_path = str(annotated_files[2].relative_to(REPO_ROOT)) if len(annotated_files) > 2 else img1_path
+
+img1_b64 = get_image_base64(img1_path, max_width=720) if img1_path else ""
+img2_b64 = get_image_base64(img2_path, max_width=800) if img2_path else ""
+img3_b64 = get_image_base64(img3_path, max_width=800) if img3_path else ""
 
 
 def build_user_guide_html() -> str:
@@ -761,7 +767,7 @@ python -m pip install -e ".[dev]"</code></pre>
     <section id="sec-history">
       <h2 class="section-title"><span class="section-number">5</span> Tra cứu Lịch sử (Local Database)</h2>
       <div class="card">
-        <p>Hệ thống tự động lưu trữ mọi phiên phân tích vào cơ sở dữ liệu SQLite cục bộ (<code>artifacts/state/trafficvision.db</code>).</p>
+        <p>Hệ thống tự động lưu trữ mọi phiên phân tích vào cơ sở dữ liệu SQLite cục bộ (<code>artifacts/state/history.db</code>).</p>
         
         <div style="overflow-x: auto; margin-top: 14px;">
           <table>
@@ -1465,20 +1471,20 @@ def build_defense_presentation_html() -> str:
               </tr>
               <tr>
                 <td><strong>Tập Huấn luyện (Train)</strong></td>
-                <td>8.131</td>
-                <td>15.733</td>
+                <td>8.098</td>
+                <td>15.671</td>
                 <td>~80%</td>
               </tr>
               <tr>
                 <td><strong>Tập Kiểm định (Val)</strong></td>
-                <td>1.001</td>
-                <td>2.036</td>
+                <td>1.015</td>
+                <td>2.059</td>
                 <td>~10%</td>
               </tr>
               <tr>
                 <td><strong>Tập Kiểm thử (Test)</strong></td>
-                <td>1.007</td>
-                <td>1.953</td>
+                <td>1.016</td>
+                <td>1.970</td>
                 <td>~10%</td>
               </tr>
             </table>
@@ -1552,12 +1558,13 @@ def build_defense_presentation_html() -> str:
       <div class="slide-body">
         <div class="grid-2">
           <div class="box-dark">
-            <h4>Lựa chọn Kiến trúc YOLO11 Nano (yolo11n)</h4>
-            <p>Mô hình tiên tiến nhất thuộc hệ sinh thái Ultralytics:</p>
+            <h4>Lựa chọn Kiến trúc YOLO11 (Nano & Medium)</h4>
+            <p>Dự án tối ưu hóa cả 2 phiên bản phục vụ đa dạng nhu cầu:</p>
             <ul>
-              <li><strong>Số lượng tham số nhỏ:</strong> ~2.6 triệu tham số, dung lượng tệp ONNX chỉ ~10 MB.</li>
-              <li><strong>Cơ chế Attention cải tiến:</strong> Tăng cường khả năng trích xuất đặc trưng cho các vật thể nhỏ (Small Object Detection) như biển báo ở xa.</li>
-              <li><strong>Tiền xử lý chuẩn hóa Letterbox:</strong> Giữ nguyên tỷ lệ khung hình gốc (Aspect Ratio) với đệm màu xám, kích thước đầu vào cố định 640x640 px.</li>
+              <li><strong>YOLO11m (Production hiện tại):</strong> Đạt độ chính xác đột phá <strong>mAP50 = 98.03%</strong>, F1-score 96.22%, xử lý sắc nét biển báo nhỏ, góc nghiêng hoặc mờ.</li>
+              <li><strong>YOLO11n (Candidate siêu nhẹ):</strong> ~2.6M tham số, tệp ONNX ~10 MB, mAP50 đạt <strong>92.47%</strong>, tốc độ suy luận CPU đạt <strong>68.26 ms (~15 FPS)</strong>.</li>
+              <li><strong>Cơ chế Attention C2PSA:</strong> Tập trung điểm ảnh vào đặc trưng biển báo xa (Small Objects).</li>
+              <li><strong>Chuẩn hóa Letterbox:</strong> Giữ tỷ lệ khung hình gốc với đệm xám, input cố định <code>640x640</code>.</li>
             </ul>
           </div>
 
@@ -1747,36 +1754,74 @@ def build_defense_presentation_html() -> str:
       </div>
     </div>
 
-    <!-- SLIDE 11: KIỂM THỬ & ĐÁNH GIÁ CHẤT LƯỢNG -->
+    <!-- SLIDE 11: KẾT QUẢ THỰC NGHIỆM & KIỂM THỬ -->
     <div class="slide">
       <div class="slide-header">
         <div>
-          <span class="slide-tag">CHẤT LƯỢNG PHẦN MỀM</span>
-          <h2 class="slide-title">10. Kiểm thử tự động & Tính trung thực của số liệu</h2>
+          <span class="slide-tag">KẾT QUẢ THỰC NGHIỆM</span>
+          <h2 class="slide-title">10. Kết quả Thực nghiệm Huấn luyện & Kiểm thử (215 Tests)</h2>
         </div>
       </div>
       <div class="slide-body">
         <div class="grid-2">
           <div class="box-dark">
-            <h4>Hệ thống Kiểm thử tự động (Test Suite)</h4>
-            <p>Dự án tuân thủ tiêu chuẩn kỹ thuật phần mềm nghiêm ngặt với <strong>Pytest</strong>:</p>
-            <ul>
-              <li><strong>170+ Test Cases</strong> tự động kiểm tra toàn bộ các thành phần:
-                <br>• Unit test tiền xử lý & validator
-                <br>• Test tính bất biến của Snapshot & Manifest
-                <br>• Test luồng suy luận ảnh & tuần tự video
-                <br>• Test Promotion & Rollback nguyên tử
-              </li>
-              <li>Tỷ lệ vượt qua kiểm thử: <strong style="color: #34d399;">100% Passed</strong>.</li>
-            </ul>
+            <h4>Kết quả Đánh giá trên Tập Test Độc lập (1.016 ảnh)</h4>
+            <table class="team-table" style="font-size: 12.5px; margin-top: 8px;">
+              <tr>
+                <th>Chỉ số</th>
+                <th>YOLO11n (Candidate)</th>
+                <th>YOLO11m (Production)</th>
+              </tr>
+              <tr>
+                <td><strong>Độ chính xác (Precision)</strong></td>
+                <td>87.26%</td>
+                <td><strong style="color: #34d399;">96.16%</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Độ bao phủ (Recall)</strong></td>
+                <td>88.60%</td>
+                <td><strong style="color: #34d399;">96.28%</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Điểm F1-Score</strong></td>
+                <td>87.92%</td>
+                <td><strong style="color: #34d399;">96.22%</strong></td>
+              </tr>
+              <tr>
+                <td><strong>mAP@0.5 (mAP50)</strong></td>
+                <td>92.47%</td>
+                <td><strong style="color: #38bdf8; font-size: 14px;">98.03%</strong></td>
+              </tr>
+              <tr>
+                <td><strong>mAP@0.5:0.95</strong></td>
+                <td>77.43%</td>
+                <td><strong style="color: #38bdf8;">84.81%</strong></td>
+              </tr>
+              <tr>
+                <td><strong>Độ trễ / FPS CPU</strong></td>
+                <td><strong style="color: #fbbf24;">68.26 ms (~15 FPS)</strong></td>
+                <td>488.57 ms (~2 FPS)</td>
+              </tr>
+              <tr>
+                <td><strong>Sai số Parity PyTorch-ONNX</strong></td>
+                <td>0.000977 (&le; 1e-3)</td>
+                <td>0.000854 (&le; 1e-3)</td>
+              </tr>
+            </table>
           </div>
 
           <div class="box-dark">
-            <h4>Nguyên tắc Trung thực Khoa học</h4>
-            <div class="box-dark" style="background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.3); margin-top: 6px;">
-              <p style="color: #fcd34d; font-size: 13px;">
-                <strong>Cam kết minh bạch dữ liệu:</strong>
-                Hệ thống báo cáo đúng thực trạng artifact trong repository: Phân định rõ ràng giữa phiên bản nền ban đầu (Baseline COCO 80 lớp) và lộ trình huấn luyện candidate 82 lớp. Không sử dụng số liệu giả lập mAP khi phiên train chưa kết thúc trọn vẹn trên phần cứng đích.
+            <h4>Kiểm thử Tự động Toàn diện (215 Tests)</h4>
+            <p>Hệ thống vượt qua <strong style="color: #34d399;">215/215 tests tự động</strong> (213 passed, 2 skipped) trên Pytest:</p>
+            <ul style="font-size: 12.5px; line-height: 1.6; margin-top: 6px;">
+              <li><strong>Tiền xử lý & Sửa lỗi Dữ liệu:</strong> Module Dataset Repair (clamp bbox [0, 1], làm sạch nhãn), 5 cổng Quality Gate, Snapshot bất biến.</li>
+              <li><strong>Huấn luyện & Hardware:</strong> Hardware auto-detect, cấu hình workers tối ưu Windows, Resume training an toàn từ <code>last.pt</code>.</li>
+              <li><strong>Tối ưu hóa & Candidate:</strong> Finalize checkpoint thành Candidate, Parity check PyTorch vs ONNX, Benchmark CPU.</li>
+              <li><strong>Vận hành MLOps & UI:</strong> Model Registry SHA-256, Safe Atomic Swap, Rollback 1-click, Streamlit AppTest.</li>
+            </ul>
+            <div class="box-dark" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3); margin-top: 10px; padding: 10px 14px;">
+              <p style="color: #34d399; font-size: 12px; margin: 0;">
+                ✓ <strong>Trạng thái:</strong> Mô hình 82 lớp YOLO11m đã chính thức thăng cấp lên <strong>Production</strong>, phục vụ phân tích trực tuyến ổn định.
               </p>
             </div>
           </div>

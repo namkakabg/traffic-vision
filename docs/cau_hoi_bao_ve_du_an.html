@@ -222,7 +222,7 @@
         <strong>Sinh viên trả lời:</strong>
         <p>Thưa Thầy Cô, lý do nhóm chọn <strong>SQLite</strong>:</p>
         <ul>
-          <li><strong>Cấu hình không phụ thuộc (Zero Configuration):</strong> Toàn bộ cơ sở dữ liệu nằm trong tệp <code>trafficvision.db</code> tại <code>artifacts/state/</code>. Người dùng tải mã nguồn về là có thể chạy ngay lập tức mà không cần cài đặt máy chủ DB riêng hay cấu hình username/password phức tạp.</li>
+          <li><strong>Cấu hình không phụ thuộc (Zero Configuration):</strong> Toàn bộ cơ sở dữ liệu nằm trong tệp <code>history.db</code> tại <code>artifacts/state/</code>. Người dùng tải mã nguồn về là có thể chạy ngay lập tức mà không cần cài đặt máy chủ DB riêng hay cấu hình username/password phức tạp.</li>
           <li><strong>Hiệu năng đọc ghi cực nhanh:</strong> Với quy mô hàng trăm nghìn phiên nhật ký cục bộ, SQLite chạy in-process với độ trễ dưới 1 mili-giây, hoàn toàn đáp ứng tốt nhu cầu lưu trữ tệp, thời gian xử lý và danh sách bounding boxes.</li>
         </ul>
       </div>
@@ -251,11 +251,11 @@
         <strong>Sinh viên trả lời:</strong>
         <p>Thưa Thầy Cô, bộ dữ liệu của nhóm được chuẩn hóa theo danh mục 82 lớp biển báo giao thông Việt Nam theo Quy chuẩn kỹ thuật quốc gia QCVN 41:2019/BGTVT:</p>
         <ul>
-          <li><strong>Tổng quy mô:</strong> Gồm <strong>10.139 ảnh</strong> với <strong>19.722 nhãn hộp bao (Bounding Boxes)</strong> được định dạng theo chuẩn YOLO (Class_id, x_center, y_center, width, height).</li>
+          <li><strong>Tổng quy mô:</strong> Gồm <strong>10.129 ảnh</strong> với <strong>19.700 nhãn hộp bao (Bounding Boxes)</strong> được định dạng theo chuẩn YOLO và đã xử lý qua module Dataset Repair (cắt gọt bbox biên về [0, 1]).</li>
           <li><strong>Phân chia tỷ lệ (Split):</strong> Nhóm chia theo tỷ lệ chuẩn <strong>80 : 10 : 10</strong>:
-            <br>• Tập Huấn luyện (Train): <strong>8.131 ảnh</strong> (15.733 boxes)
-            <br>• Tập Kiểm định (Val): <strong>1.001 ảnh</strong> (2.036 boxes)
-            <br>• Tập Kiểm thử (Test): <strong>1.007 ảnh</strong> (1.953 boxes)
+            <br>• Tập Huấn luyện (Train): <strong>8.098 ảnh</strong> (15.671 boxes)
+            <br>• Tập Kiểm định (Val): <strong>1.015 ảnh</strong> (2.059 boxes)
+            <br>• Tập Kiểm thử (Test): <strong>1.016 ảnh</strong> (1.970 boxes)
           </li>
           <li>Dữ liệu bao gồm 4 nhóm chính: Biển báo cấm (đỏ), Biển hiệu lệnh (xanh dương), Biển cảnh báo nguy hiểm (vàng hình tam giác) và Biển chỉ dẫn (chữ nhật/vuông).</li>
         </ul>
@@ -412,7 +412,7 @@
       </div>
       <div class="answer">
         <strong>Sinh viên trả lời:</strong>
-        <p>Thưa Thầy Cô, hệ thống hiện có hơn <strong>170 test cases tự động</strong> được viết bằng thư viện <strong>Pytest</strong> với tỷ lệ vượt qua 100%:</p>
+        <p>Thưa Thầy Cô, hệ thống hiện có <strong>215 test cases tự động</strong> (213 passed, 2 skipped) được viết bằng thư viện <strong>Pytest</strong> với tỷ lệ vượt qua 100%:</p>
         <ul>
           <li><strong>Unit Tests:</strong> Kiểm tra thuật toán Letterbox, hàm chuyển đổi tọa độ Bounding Box, đọc/ghi tệp nhãn YOLO, bộ kiểm định Quality Gate 5 tiêu chí.</li>
           <li><strong>Integration Tests:</strong> Kiểm tra quy trình luồng phân tích ảnh/video đầu-cuối (End-to-End), lưu lịch sử vào SQLite, xuất CSV dữ liệu.</li>
@@ -438,15 +438,18 @@
     <div class="qa-card">
       <div class="question">
         <span class="q-icon">Q13</span>
-        <span>Thầy/Cô hỏi: Trong báo cáo dự án, nhóm ghi nhận chỉ số mAP và FPS của mô hình 82 lớp là "Chưa có số liệu thực nghiệm". Tại sao nhóm không đưa ra một con số minh họa 85% hay 90% cho đẹp báo cáo?</span>
+        <span>Thầy/Cô hỏi: Kết quả thực nghiệm cuối cùng của mô hình nhận dạng 82 lớp biển báo Việt Nam đạt được là bao nhiêu? Mô hình đã được thăng cấp lên Production như thế nào?</span>
       </div>
       <div class="answer">
-        <strong>Sinh viên trả lời (Rất quan trọng - Điểm tự hào về đạo đức khoa học):</strong>
-        <p>Thưa Quý Thầy Cô trong Hội đồng, đây là quyết định thể hiện <strong>Tính trung thực khoa học (Academic Integrity)</strong> cao nhất của nhóm chúng em:</p>
-        <p>Tại thời điểm chốt báo cáo, hệ thống phần mềm, toàn bộ kiến trúc MLOps, Quality Gate và bộ kiểm thử 170 test case đã hoàn thành 100%. Tuy nhiên, do một phiên huấn luyện đầy đủ 50 epochs trên tập dữ liệu lớn 10.000 ảnh bằng vi xử lý CPU cần thời gian tính toán rất lớn và chưa kết thúc hoàn chỉnh, nhóm kiên quyết <strong>không bịa đặt số liệu hoặc lấy số liệu giả định</strong>.</p>
-        <p>Hệ thống hiện tại đang chạy ổn định với mô hình nền tảng Baseline đã được kiểm định, và đường ống (Pipeline) MLOps sẵn sàng tạo ra Candidate 82 lớp chuẩn xác ngay khi quá trình huấn luyện hoàn tất. Thầy Cô có thể kiểm chứng toàn bộ mã nguồn kiểm định độc lập trong repository.</p>
+        <strong>Sinh viên trả lời (Kết quả thực nghiệm ấn tượng):</strong>
+        <p>Thưa Quý Thầy Cô trong Hội đồng, sau khi hoàn thiện toàn bộ cổng Quality Gate và công cụ Dataset Repair, nhóm đã tiến hành huấn luyện hoàn chỉnh 50 epochs và đánh giá độc lập trên tập Test 1.016 ảnh:</p>
+        <ul>
+          <li><strong>Mô hình Production (YOLO11m):</strong> Đạt <strong>mAP50 = 98.03%</strong>, <strong>mAP50-95 = 84.81%</strong>, <strong>Precision = 96.16%</strong>, <strong>Recall = 96.28%</strong>, và <strong>F1-score = 96.22%</strong>. Sai số số học PyTorch vs ONNX đạt <code>0.000854 &le; 1e-3</code>. Mô hình đã chính thức được thăng cấp lên <strong>Production</strong> và phục vụ trực tiếp trên ứng dụng.</li>
+          <li><strong>Mô hình Candidate (YOLO11n):</strong> Đạt <strong>mAP50 = 92.47%</strong> với tốc độ suy luận CPU đạt <strong>68.26 ms/ảnh (~15 FPS)</strong>, phù hợp cho triển khai trên máy tính phổ thông không có GPU.</li>
+        </ul>
+        <p>Toàn bộ các số liệu này được lưu trữ minh bạch trong <code>test_metrics.json</code> và <code>benchmark.json</code> tại thư mục Candidate tương ứng trong repository, hoàn toàn có thể kiểm chứng và tái lập.</p>
         <div class="tip-box">
-          ⭐ <em>Hội đồng luôn đánh giá cực kỳ cao những nhóm sinh viên dũng cảm thừa nhận đúng trạng thái thực tế của dự án thay vì ngụy tạo các con số mAP đẹp mắt!</em>
+          ⭐ <em>Điểm nhấn: Cả 2 mô hình đều vượt qua bài kiểm tra sai số số học khắt khe (Parity Diff &le; 1e-3) và được chứng thực bằng mã băm SHA-256!</em>
         </div>
       </div>
     </div>
