@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bộ Câu Hỏi & Trả Lời Bảo Vệ Đồ Án - TrafficVision</title>
+  <style>
+    :root {
+      --primary: #1e40af;
+      --primary-light: #eff6ff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px 56px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+    header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 99px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 28px;
+      color: #0f172a;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+    .member-section {
+      margin-top: 40px;
+      border-top: 2px dashed var(--border);
+      padding-top: 28px;
+    }
+    .member-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .member-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2563eb, #14b8a6);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 16px;
+    }
+    .member-name {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .member-role {
+      font-size: 13px;
+      color: #2563eb;
+      font-weight: 600;
+    }
+    .qa-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      transition: border-color 0.2s ease;
+    }
+    .qa-card:hover {
+      border-color: #93c5fd;
+    }
+    .question {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e3a8a;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .q-icon {
+      background: #dbeafe;
+      color: #1d4ed8;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: inline-grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .answer {
+      font-size: 14px;
+      color: #334155;
+      padding-left: 34px;
+      line-height: 1.65;
+    }
+    .answer strong {
+      color: #0f172a;
+    }
+    .tip-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 8px 14px;
+      margin-top: 10px;
+      font-size: 12.5px;
+      color: #166534;
+    }
+    .code-inline {
+      font-family: var(--font-mono);
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #0f172a;
+      font-size: 12.5px;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .container { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+      .qa-card { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <span class="badge">TÀI LIỆU BẢO VỆ ĐỒ ÁN / HỎI ĐÁP PHẢN BIỆN</span>
+    <h1>Cẩm Nang Trả Lời Câu Hỏi Phản Biện Của Hội Đồng (Q&A)</h1>
+    <p style="color: #64748b; font-size: 15px;">Dự án: <strong>TrafficVision – Nhận dạng biển báo giao thông Việt Nam bằng AI</strong></p>
+    <p style="font-size: 13px; color: #475569; margin-top: 6px;">Tài liệu được phân chia cụ thể theo từng mảng công việc phụ trách của 4 thành viên trong nhóm, giúp các bạn nắm chắc kiến thức và tự tin trả lời trước Thầy Cô.</p>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- PHẦN 1: PHÍ VĂN NAM (TRƯỞNG NHÓM) -->
+  <!-- ========================================== -->
+  <div class="member-section" style="border-top: none; padding-top: 0;">
+    <div class="member-header">
+      <div class="member-avatar">PVN</div>
+      <div>
+        <div class="member-name">1. Phí Văn Nam (Trưởng nhóm)</div>
+        <div class="member-role">Phụ trách: Kiến trúc tổng thể, Tích hợp MLOps, Luồng dữ liệu hệ thống, Cơ sở dữ liệu SQLite & Quản trị rủi ro</div>
+      </div>
+    </div>
+
+    <!-- CÂU 1 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q1</span>
+        <span>Thầy/Cô hỏi: Tại sao nhóm lại thiết kế hệ thống tách biệt giữa Quy trình Trực tuyến (Online Inference) và Quy trình Ngoại tuyến (Offline Training)? Lợi ích kiến trúc ở đây là gì?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, đây là nguyên lý thiết kế tối quan trọng trong kỹ nghệ phần mềm AI (MLOps). Việc tách biệt mang lại 3 lợi ích cốt lõi:</p>
+        <ol style="margin-left: 20px; margin-top: 4px;">
+          <li><strong>Tính sẵn sàng dịch vụ (High Availability):</strong> Người dùng khi tải ảnh hoặc video để phân tích chỉ tương tác với <code>Production Model</code> ở trạng thái chỉ đọc (Read-only). Quá trình huấn luyện mô hình mới có thể kéo dài hàng giờ và tiêu tốn nhiều CPU/GPU nhưng diễn ra hoàn toàn ở một tiến trình nền độc lập, không làm đơ hoặc nghẽn giao diện người dùng.</li>
+          <li><strong>Bảo vệ môi trường Production:</strong> Nếu quá trình huấn luyện bị lỗi, hết bộ nhớ hoặc mô hình mới chưa đạt độ chính xác mAP kỳ vọng, luồng phục vụ hiện tại hoàn toàn không bị ảnh hưởng.</li>
+          <li><strong>Khả năng mở rộng (Scalability):</strong> Chúng ta có thể dễ dàng tách tầng huấn luyện sang một cụm máy chủ GPU đám mây chuyên dụng mà không cần viết lại mã nguồn tầng ứng dụng giao diện.</li>
+        </ol>
+        <div class="tip-box">
+          💡 <em>Mẹo ghi điểm:</em> Nhấn mạnh nhóm đã cài đặt <code>TrainingManager</code> chạy ngầm dạng Subprocess và ghi nhận trạng thái vào <code>state.json</code>.
+        </div>
+      </div>
+    </div>
+
+    <!-- CÂU 2 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q2</span>
+        <span>Thầy/Cô hỏi: Cơ chế Thăng cấp (Promotion) và Hoàn tác (Rollback) của nhóm hoạt động như thế nào? Làm sao đảm bảo mô hình không bị hỏng khi đang cập nhật?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, nhóm sử dụng cơ chế <strong>Hoán đổi nguyên tử an toàn (Safe Atomic Swap)</strong> được quản lý bởi <code>ModelRegistry</code>:</p>
+        <ol style="margin-left: 20px; margin-top: 4px;">
+          <li><strong>Bước 1 (Tự động Sao lưu):</strong> Trước khi bất kỳ mô hình mới nào ghi đè lên production, hệ thống lập tức sao chép nguyên vẹn mô hình cũ cùng tệp <code>manifest.json</code> vào thư mục sao lưu: <code>artifacts/backups/backup_&lt;timestamp&gt;/</code>.</li>
+          <li><strong>Bước 2 (Kiểm định Checksum SHA-256):</strong> Mô hình Candidate chỉ được phép thăng cấp nếu tệp ONNX hợp lệ, đúng cấu trúc 82 lớp và khớp chính xác mã băm SHA-256 để chống lỗi hỏng tệp.</li>
+          <li><strong>Bước 3 (Rollback 1-Click):</strong> Nếu sau khi thăng cấp có bất kỳ sự cố nào, hệ thống hỗ trợ khôi phục tức thì về bản sao lưu trước đó chỉ với 1 cú click chuột trên Web UI hoặc lệnh <code>python scripts/promote_model.py --rollback</code> mà không cần khởi động lại ứng dụng.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- CÂU 3 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q3</span>
+        <span>Thầy/Cô hỏi: Tại sao nhóm chọn SQLite làm cơ sở dữ liệu lưu trữ lịch sử thay vì MySQL hay MongoDB?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, lý do nhóm chọn <strong>SQLite</strong>:</p>
+        <ul>
+          <li><strong>Cấu hình không phụ thuộc (Zero Configuration):</strong> Toàn bộ cơ sở dữ liệu nằm trong tệp <code>trafficvision.db</code> tại <code>artifacts/state/</code>. Người dùng tải mã nguồn về là có thể chạy ngay lập tức mà không cần cài đặt máy chủ DB riêng hay cấu hình username/password phức tạp.</li>
+          <li><strong>Hiệu năng đọc ghi cực nhanh:</strong> Với quy mô hàng trăm nghìn phiên nhật ký cục bộ, SQLite chạy in-process với độ trễ dưới 1 mili-giây, hoàn toàn đáp ứng tốt nhu cầu lưu trữ tệp, thời gian xử lý và danh sách bounding boxes.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- PHẦN 2: ĐỖ THỊ VÂN ANH (KỸ SƯ DỮ LIỆU) -->
+  <!-- ========================================== -->
+  <div class="member-section">
+    <div class="member-header">
+      <div class="member-avatar" style="background: linear-gradient(135deg, #10b981, #0d9488);">DVA</div>
+      <div>
+        <div class="member-name">2. Đỗ Thị Vân Anh (Kỹ sư Dữ liệu & EDA)</div>
+        <div class="member-role">Phụ trách: Thu thập tập dữ liệu biển báo Việt Nam 82 lớp, Xây dựng bộ lọc Quality Gate, Phân tích khám phá dữ liệu (EDA) & Snapshot bất biến</div>
+      </div>
+    </div>
+
+    <!-- CÂU 4 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q4</span>
+        <span>Thầy/Cô hỏi: Bộ dữ liệu 82 lớp của nhóm có đặc điểm gì? Quy mô ra sao và nhóm chia tập Train/Val/Test theo tỷ lệ nào?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, bộ dữ liệu của nhóm được chuẩn hóa theo danh mục 82 lớp biển báo giao thông Việt Nam theo Quy chuẩn kỹ thuật quốc gia QCVN 41:2019/BGTVT:</p>
+        <ul>
+          <li><strong>Tổng quy mô:</strong> Gồm <strong>10.139 ảnh</strong> với <strong>19.722 nhãn hộp bao (Bounding Boxes)</strong> được định dạng theo chuẩn YOLO (Class_id, x_center, y_center, width, height).</li>
+          <li><strong>Phân chia tỷ lệ (Split):</strong> Nhóm chia theo tỷ lệ chuẩn <strong>80 : 10 : 10</strong>:
+            <br>• Tập Huấn luyện (Train): <strong>8.131 ảnh</strong> (15.733 boxes)
+            <br>• Tập Kiểm định (Val): <strong>1.001 ảnh</strong> (2.036 boxes)
+            <br>• Tập Kiểm thử (Test): <strong>1.007 ảnh</strong> (1.953 boxes)
+          </li>
+          <li>Dữ liệu bao gồm 4 nhóm chính: Biển báo cấm (đỏ), Biển hiệu lệnh (xanh dương), Biển cảnh báo nguy hiểm (vàng hình tam giác) và Biển chỉ dẫn (chữ nhật/vuông).</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CÂU 5 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q5</span>
+        <span>Thầy/Cô hỏi: Quality Gate trong hệ thống kiểm tra những lỗi gì? Tại sao phải kiểm tra Data Leakage bằng SHA-256?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, <strong>Quality Gate</strong> là cổng kiểm soát chất lượng tự động ngăn chặn 5 lỗi kỹ thuật nghiêm ngặt:</p>
+        <ol style="margin-left: 20px;">
+          <li><code>CORRUPT_IMAGE</code>: Ảnh bị lỗi byte hoặc không thể giải mã bằng OpenCV.</li>
+          <li><code>MALFORMED_YOLO_LINE</code>: Dòng nhãn thiếu/thừa cột giá trị.</li>
+          <li><code>CLASS_ID_OUT_OF_RANGE</code>: Class ID nằm ngoài khoảng 0 – 81.</li>
+          <li><code>INVALID_COORDINATES</code>: Tọa độ bbox nằm ngoài khoảng hợp lệ [0, 1].</li>
+          <li><strong>DATA_LEAKAGE (Rò rỉ dữ liệu):</strong> Nhóm tính mã băm SHA-256 của từng bức ảnh. Nếu có bức ảnh trong tập Train lại vô tình xuất hiện trong tập Val hoặc Test (do trùng lặp file), hệ thống sẽ báo lỗi chặn ngay lập tức. Điều này đảm bảo mô hình không bị hiện tượng "học vẹt", giúp số liệu đánh giá mAP phản ánh đúng 100% năng lực nhận dạng thực tế trên dữ liệu chưa từng thấy.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- CÂU 6 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q6</span>
+        <span>Thầy/Cô hỏi: Thế nào là "Dataset Snapshot bất biến"? Tại sao không trỏ trực tiếp vào thư mục staging để huấn luyện?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, nếu trỏ trực tiếp vào thư mục staging, dữ liệu có thể bị ai đó thêm, sửa, xóa nhãn trong lúc đang huấn luyện, dẫn đến kết quả không thể tái lập (Loss of Reproducibility). Vì vậy, sau khi Quality Gate kiểm định thành công, hệ thống sẽ sao chép toàn bộ dữ liệu vào một thư mục bất biến: <code>artifacts/snapshots/&lt;snapshot_id&gt;/</code>, đi kèm file cấu hình <code>data.yaml</code> và bản băm SHA-256 của toàn bộ danh sách file. Bất kỳ lần huấn luyện nào cũng truy vết được chính xác tập dữ liệu gốc đã dùng.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- PHẦN 3: ĐỖ HỮU NGHỊ (KỸ SƯ AI/ML) -->
+  <!-- ========================================== -->
+  <div class="member-section">
+    <div class="member-header">
+      <div class="member-avatar" style="background: linear-gradient(135deg, #f59e0b, #d97706);">DHN</div>
+      <div>
+        <div class="member-name">3. Đỗ Hữu Nghị (Kỹ sư AI/ML & Tối ưu hóa mô hình)</div>
+        <div class="member-role">Phụ trách: Cấu hình huấn luyện YOLO11, Tối ưu hóa ONNX Runtime CPU, Kiểm định sai số số học & Benchmark hiệu năng</div>
+      </div>
+    </div>
+
+    <!-- CÂU 7 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q7</span>
+        <span>Thầy/Cô hỏi: Tại sao mô hình lại chạy được mượt mà trên CPU với tốc độ 40-50ms mà không cần GPU rời? Nhóm đã áp dụng những kỹ thuật tối ưu nào?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, để đạt được tốc độ suy luận dưới 50ms trên CPU thông thường, nhóm đã phối hợp 4 kỹ thuật tối ưu hóa:</p>
+        <ol style="margin-left: 20px;">
+          <li><strong>Chuyển đổi đồ thị sang ONNX Runtime:</strong> Bỏ qua overhead của framework PyTorch, ONNX Runtime biên dịch đồ thị tính toán tối ưu riêng cho tập chỉ thị phần cứng CPU (AVX2, AVX-512 hoặc Apple Silicon NEON).</li>
+          <li><strong>Đồ thị tĩnh (Static Shape [1, 3, 640, 640]):</strong> Kích thước ảnh cố định giúp runtime cấp phát bộ nhớ một lần duy nhất, tránh chi phí cấp phát lại bộ nhớ liên tục trong mỗi frame.</li>
+          <li><strong>Tối ưu hóa đồ thị (Graph Optimization ORT_ENABLE_ALL):</strong> Tự động gộp các lớp liên tiếp (ví dụ: gộp Convolution + Batch Normalization + Activation Function SiLU thành 1 kernel tính toán duy nhất).</li>
+          <li><strong>Cấu hình đa luồng nội bộ (Intra-op Threads):</strong> Khai thác triệt để các nhân xử lý song song của CPU.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- CÂU 8 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q8</span>
+        <span>Thầy/Cô hỏi: Kiểm tra sai số số học Parity Check giữa PyTorch và ONNX có ý nghĩa gì? Ngưỡng 1e-3 được tính như thế nào?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, khi chuyển đổi một mạng nơ-ron từ PyTorch sang định dạng ONNX, có nguy cơ các toán tử số học bị sai lệch do khác biệt về cách cài đặt hàm toán học hoặc làm tròn số thực. Nhóm đã xây dựng bài kiểm tra tự động:</p>
+        <p>Cùng đưa 1 tensor ảnh đầu vào ngẫu nhiên qua cả hai mô hình (PyTorch <code>.pt</code> và ONNX <code>.onnx</code>), sau đó đo độ lệch tuyệt đối cực đại:</p>
+        <p class="code-inline">max_abs_diff = np.max(np.abs(output_pytorch - output_onnx))</p>
+        <p>Nếu <code>max_abs_diff &le; 1e-3</code> (dưới một phần nghìn), chúng em khẳng định mô hình ONNX phản ánh chính xác 100% logic của mô hình PyTorch gốc, không bị biến dạng kết quả nhận diện.</p>
+      </div>
+    </div>
+
+    <!-- CÂU 9 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q9</span>
+        <span>Thầy/Cô hỏi: Hãy giải thích các thành phần trong hàm mất mát (Loss function) của YOLO11 khi nhận dạng biển báo?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, hàm mất mát của YOLO11 gồm 3 thành phần chính:</p>
+        <ul>
+          <li><strong>CIoU Loss (Box Loss):</strong> Tối ưu hóa tọa độ hộp bao dựa trên tỷ lệ diện tích giao nhau, khoảng cách tâm và tỷ lệ co giãn hình học. Biển báo giao thông có hình tròn, hình tam giác hoặc hình vuông rõ rệt, CIoU giúp khung bao ôm sát biển báo nhất.</li>
+          <li><strong>BCE Loss (Classification Loss):</strong> Sử dụng hàm mất mát Binary Cross-Entropy để phân loại độc lập điểm số tin cậy cho 82 lớp biển báo.</li>
+          <li><strong>DFL Loss (Distribution Focal Loss):</strong> Hồi quy phân phối xác suất cho 4 tọa độ đường viền của bounding box, đặc biệt hiệu quả khi biển báo bị che khuất một phần bởi cây cối hoặc xe cộ.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- PHẦN 4: QUẢN VĂN ĐIỆP (KỸ SƯ FULLSTACK/QA) -->
+  <!-- ========================================== -->
+  <div class="member-section">
+    <div class="member-header">
+      <div class="member-avatar" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">QVD</div>
+      <div>
+        <div class="member-name">4. Quản Văn Điệp (Kỹ sư Fullstack / QA & Giao diện)</div>
+        <div class="member-role">Phụ trách: Phát triển ứng dụng Web Streamlit, Xử lý suy luận video đa phương tiện, Bộ kiểm thử tự động Pytest & Hướng dẫn sử dụng</div>
+      </div>
+    </div>
+
+    <!-- CÂU 10 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q10</span>
+        <span>Thầy/Cô hỏi: Framework Streamlit có đặc điểm là chạy lại toàn bộ mã nguồn mỗi khi người dùng tương tác (Rerun). Nhóm đã xử lý bài toán này như thế nào để giao diện không bị giật lag và không bị mất trạng thái?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, để khắc phục đặc tính rerun của Streamlit, em đã áp dụng 3 giải pháp kiến trúc:</p>
+        <ol style="margin-left: 20px;">
+          <li><strong>Quản lý trạng thái bằng <code>st.session_state</code>:</strong> Mọi kết quả phân tích (ảnh đã vẽ bounding box, bảng CSV kết quả, mã phiên hiện tại) đều được lưu vào <code>session_state</code>. Khi người dùng thao tác ở bảng điều khiển bên phải, ảnh bên trái không cần tính toán lại mà hiển thị tức thì từ bộ nhớ đệm.</li>
+          <li><strong>Singleton Pattern cho AppServices:</strong> Các đối tượng nặng như Model ONNX, Database Repository, Config chỉ được khởi tạo một lần duy nhất.</li>
+          <li><strong>Tách trang (Modular Pages):</strong> Tách biệt mã nguồn thành các module độc lập trong <code>trafficvision/ui/pages/</code> (analysis, history, training, settings...), giúp mã nguồn gọn gàng và tải trang mượt mà.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- CÂU 11 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q11</span>
+        <span>Thầy/Cô hỏi: Luồng xử lý video hoạt động như thế nào? Tại sao người dùng có thể xem được thanh tiến trình (Progress bar) theo từng khung hình?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, đối với tệp video (MP4, AVI, MOV):</p>
+        <ol style="margin-left: 20px;">
+          <li>Hệ thống sử dụng OpenCV <code>cv2.VideoCapture</code> để đọc tuần tự từng frame hình ảnh.</li>
+          <li>Hàm xử lý <code>analyze_video_upload</code> chấp nhận một hàm callback <code>on_progress</code>. Mỗi khi xử lý xong một khung hình, callback này được gọi kèm thông số <code>VideoProgress(current_frame, total_frames, fraction)</code>.</li>
+          <li>Streamlit nhận callback và cập nhật thanh <code>st.progress()</code> theo thời gian thực trên màn hình, giúp người dùng biết chính xác video đang được xử lý đến đâu và dự kiến thời gian hoàn thành.</li>
+          <li>Sau khi hoàn thành, video đã gắn nhãn bounding box được đóng gói bằng <code>cv2.VideoWriter</code> và hiển thị trực tiếp trên trình phát HTML5 của trang web.</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- CÂU 12 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q12</span>
+        <span>Thầy/Cô hỏi: Bộ kiểm thử tự động của nhóm có bao nhiêu test case? Nhóm kiểm thử những khía cạnh nào của hệ thống?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, hệ thống hiện có hơn <strong>170 test cases tự động</strong> được viết bằng thư viện <strong>Pytest</strong> với tỷ lệ vượt qua 100%:</p>
+        <ul>
+          <li><strong>Unit Tests:</strong> Kiểm tra thuật toán Letterbox, hàm chuyển đổi tọa độ Bounding Box, đọc/ghi tệp nhãn YOLO, bộ kiểm định Quality Gate 5 tiêu chí.</li>
+          <li><strong>Integration Tests:</strong> Kiểm tra quy trình luồng phân tích ảnh/video đầu-cuối (End-to-End), lưu lịch sử vào SQLite, xuất CSV dữ liệu.</li>
+          <li><strong>MLOps & Registry Tests:</strong> Kiểm tra tính toàn vẹn mã băm SHA-256 của Manifest, kiểm tra cơ chế sao lưu tự động và khả năng Rollback mô hình khi gặp lỗi.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- PHẦN 5: CÂU HỎI CHUNG CHO CẢ NHÓM -->
+  <!-- ========================================== -->
+  <div class="member-section">
+    <div class="member-header">
+      <div class="member-avatar" style="background: linear-gradient(135deg, #ef4444, #dc2626);">ALL</div>
+      <div>
+        <div class="member-name">5. Câu hỏi Chiến lược & Tính Khoa học Chung cho Cả Nhóm</div>
+        <div class="member-role">Dành cho bất kỳ thành viên nào được Hội đồng chỉ định trả lời</div>
+      </div>
+    </div>
+
+    <!-- CÂU 13 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q13</span>
+        <span>Thầy/Cô hỏi: Trong báo cáo dự án, nhóm ghi nhận chỉ số mAP và FPS của mô hình 82 lớp là "Chưa có số liệu thực nghiệm". Tại sao nhóm không đưa ra một con số minh họa 85% hay 90% cho đẹp báo cáo?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời (Rất quan trọng - Điểm tự hào về đạo đức khoa học):</strong>
+        <p>Thưa Quý Thầy Cô trong Hội đồng, đây là quyết định thể hiện <strong>Tính trung thực khoa học (Academic Integrity)</strong> cao nhất của nhóm chúng em:</p>
+        <p>Tại thời điểm chốt báo cáo, hệ thống phần mềm, toàn bộ kiến trúc MLOps, Quality Gate và bộ kiểm thử 170 test case đã hoàn thành 100%. Tuy nhiên, do một phiên huấn luyện đầy đủ 50 epochs trên tập dữ liệu lớn 10.000 ảnh bằng vi xử lý CPU cần thời gian tính toán rất lớn và chưa kết thúc hoàn chỉnh, nhóm kiên quyết <strong>không bịa đặt số liệu hoặc lấy số liệu giả định</strong>.</p>
+        <p>Hệ thống hiện tại đang chạy ổn định với mô hình nền tảng Baseline đã được kiểm định, và đường ống (Pipeline) MLOps sẵn sàng tạo ra Candidate 82 lớp chuẩn xác ngay khi quá trình huấn luyện hoàn tất. Thầy Cô có thể kiểm chứng toàn bộ mã nguồn kiểm định độc lập trong repository.</p>
+        <div class="tip-box">
+          ⭐ <em>Hội đồng luôn đánh giá cực kỳ cao những nhóm sinh viên dũng cảm thừa nhận đúng trạng thái thực tế của dự án thay vì ngụy tạo các con số mAP đẹp mắt!</em>
+        </div>
+      </div>
+    </div>
+
+    <!-- CÂU 14 -->
+    <div class="qa-card">
+      <div class="question">
+        <span class="q-icon">Q14</span>
+        <span>Thầy/Cô hỏi: Nếu đưa sản phẩm này vào ứng dụng thương mại thực tế, nhóm dự định phát triển tiếp theo những hướng nào?</span>
+      </div>
+      <div class="answer">
+        <strong>Sinh viên trả lời:</strong>
+        <p>Thưa Thầy Cô, nhóm đã định hướng 3 bước mở rộng thực tế tiếp theo:</p>
+        <ol style="margin-left: 20px;">
+          <li><strong>Kết nối Camera hành trình trực tiếp (Dashcam RTSP stream):</strong> Lấy luồng video thời gian thực từ camera gắn trên gương xe hơi để đưa ra cảnh báo tức thì cho tài xế khi đang lái xe.</li>
+          <li><strong>Cảnh báo giọng nói tiếng Việt (Voice Alert):</strong> Ví dụ khi phát hiện biển "Giới hạn tốc độ 40km/h" mà xe đang chạy quá tốc độ, hệ thống sẽ phát âm thanh nhắc nhở qua loa xe.</li>
+          <li><strong>Bản đồ số hóa biển báo giao thông:</strong> Kết hợp tọa độ định vị GPS để tự động vẽ bản đồ các biển báo trên từng cung đường, hỗ trợ Sở Giao thông Vận tải kiểm tra và bảo dưỡng biển báo bị hư hỏng.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <footer style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: #64748b; text-align: center;">
+    Cẩm nang bảo vệ đồ án TrafficVision • Chúc nhóm hoàn thành xuất sắc buổi bảo vệ!
+  </footer>
+</div>
+
+</body>
+</html>

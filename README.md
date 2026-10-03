@@ -2,6 +2,10 @@
 
 Hệ thống thị giác máy tính nhận dạng biển báo giao thông trên ảnh và video, tối ưu suy luận ONNX trên CPU (macOS/Windows) và sẵn sàng nâng cấp lên mô hình 82 lớp biển báo Việt Nam.
 
+- **Sổ tay Hướng dẫn sử dụng:** [docs/huong_dan_su_dung.html](docs/huong_dan_su_dung.html) | [Bản PDF](docs/huong_dan_su_dung.pdf) | [Bản Markdown](docs/HUONG_DAN_SU_DUNG.md)
+- **Slide Thuyết trình Bảo vệ Dự án (14 slides):** [docs/slide_bao_ve_du_an.html](docs/slide_bao_ve_du_an.html) | [Bản PDF](docs/slide_bao_ve_du_an.pdf)
+- **Tài liệu Kỹ thuật Huấn luyện & Phương pháp Xử lý Chuyên sâu:** [docs/tai_lieu_huan_luyen_chuyen_sau.html](docs/tai_lieu_huan_luyen_chuyen_sau.html) | [Bản PDF](docs/tai_lieu_huan_luyen_chuyen_sau.pdf)
+- **Cẩm nang Câu hỏi & Trả lời Bảo vệ Đồ án (Q&A theo 4 thành viên):** [docs/cau_hoi_bao_ve_du_an.html](docs/cau_hoi_bao_ve_du_an.html) | [Bản PDF](docs/cau_hoi_bao_ve_du_an.pdf)
 - **Tài liệu đặc tả thiết kế:** [docs/superpowers/specs/2026-09-27-trafficvision-design.md](docs/superpowers/specs/2026-09-27-trafficvision-design.md)
 - **Kế hoạch triển khai baseline:** [docs/superpowers/plans/2026-09-27-trafficvision-baseline-app.md](docs/superpowers/plans/2026-09-27-trafficvision-baseline-app.md)
 

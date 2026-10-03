@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tài Liệu Kỹ Thuật Huấn Luyện & Phương Pháp Xử Lý Chuyên Sâu - TrafficVision</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #0f172a;
+      --accent: #0d9488;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px 56px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    }
+    header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 99px;
+      background: #eff6ff;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 28px;
+      color: #0f172a;
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+    .meta-box {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 13px;
+      color: #475569;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      margin-top: 14px;
+    }
+    h2 {
+      font-size: 20px;
+      color: #0f172a;
+      margin: 36px 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h3 {
+      font-size: 16px;
+      color: #1e293b;
+      margin: 22px 0 10px;
+    }
+    p, li {
+      font-size: 14.5px;
+      color: #334155;
+      margin-bottom: 10px;
+    }
+    ul, ol {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 16px 20px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      margin: 14px 0 20px;
+      line-height: 1.5;
+    }
+    code {
+      font-family: var(--font-mono);
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    .callout {
+      padding: 16px 20px;
+      border-radius: 10px;
+      border-left: 4px solid var(--primary);
+      background: #eff6ff;
+      margin: 18px 0;
+      font-size: 14px;
+      color: #1e40af;
+    }
+    .callout-warning {
+      border-color: #f59e0b;
+      background: #fffbeb;
+      color: #92400e;
+    }
+    .callout-success {
+      border-color: #10b981;
+      background: #f0fdf4;
+      color: #166534;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0;
+      font-size: 13.5px;
+    }
+    th, td {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      color: #1e293b;
+      font-weight: 700;
+    }
+    .formula-box {
+      background: #fafafa;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 14px 20px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #0f172a;
+      margin: 14px 0;
+    }
+    .diagram-box {
+      background: #0f172a;
+      color: #38bdf8;
+      border-radius: 10px;
+      padding: 18px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-x: auto;
+      margin: 16px 0;
+    }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .container { border: none; box-shadow: none; padding: 0; max-width: 100%; }
+      pre, code { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <span class="badge">TÀI LIỆU KỸ THUẬT NỘI BỘ & HỘI ĐỒNG BẢO VỆ</span>
+    <h1>Kiến Trúc Kỹ Thuật, Phương Pháp Xử Lý & Quy Trình Huấn Luyện AI Chuyên Sâu</h1>
+    <p style="color: #64748b; font-size: 15px;">Dự án: <strong>TrafficVision – Hệ thống nhận dạng biển báo giao thông Việt Nam bằng AI</strong></p>
+    
+    <div class="meta-box">
+      <div><strong>Tác giả:</strong> Nhóm nghiên cứu & phát triển TrafficVision</div>
+      <div><strong>Kiến trúc:</strong> YOLO11 Nano (yolo11n) + ONNX Runtime</div>
+      <div><strong>Chuẩn phân loại:</strong> 82 Lớp QCVN 41:2019/BGTVT</div>
+      <div><strong>Cập nhật:</strong> Tháng 10/2026</div>
+    </div>
+  </header>
+
+  <!-- MỤC 1: KIẾN TRÚC MÔ HÌNH -->
+  <h2>1. Kiến trúc Mô hình YOLO11 Nano & Nguyên lý Nhận dạng</h2>
+  <p>Hệ thống lựa chọn <strong>YOLO11 Nano (yolo11n)</strong> do Ultralytics phát hành làm kiến trúc cơ bản nhờ tỷ lệ tối ưu giữa độ chính xác nhận dạng và độ trễ suy luận trên phần cứng CPU không có GPU rời.</p>
+
+  <div class="diagram-box">
+[ Ảnh đầu vào (Input 3x640x640) ]
+        │
+        ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 1. BACKBONE: Trích xuất đặc trưng đa quy mô                 │
+│    - C3k2 Blocks (Cross Stage Partial với kernel tinh chỉnh)│
+│    - SPPF (Spatial Pyramid Pooling - Fast)                  │
+│    - C2PSA Block: Cơ chế Attention tự chú ý không gian       │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ (P3: 80x80, P4: 40x40, P5: 20x20)
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 2. NECK: Dung hợp đa tỷ lệ PAN-FPN (Path Aggregation)       │
+│    - Ghép nối thông tin ngữ nghĩa sâu với vị trí nông       │
+│    - Tăng cường khả năng nhận diện biển báo kích thước nhỏ  │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. HEAD: Decoupled Head (Phân tách độc lập)                 │
+│    - Nhánh 1: Phân loại lớp biển báo (Classification)       │
+│    - Nhánh 2: Hồi quy tọa độ hộp bao (Bounding Box Reg)     │
+└─────────────────────────────────────────────────────────────┘
+  </div>
+
+  <h3>Tại sao chọn YOLO11 Nano?</h3>
+  <ul>
+    <li><strong>Kích thước nhỏ gọn:</strong> Số tham số ~2.6 triệu, trọng số FP32 ONNX chỉ khoảng <strong>10.2 MB</strong>.</li>
+    <li><strong>Khối C2PSA (Cross Stage Partial with Pointwise Spatial Attention):</strong> Tăng cường khả năng tập trung vào các chi tiết biển báo nhỏ ở xa (Small Objects), vốn là điểm yếu của các kiến trúc YOLO thế hệ cũ.</li>
+    <li><strong>Decoupled Head:</strong> Tách biệt việc dự đoán nhãn loại biển và định vị tọa độ hộp bao, giảm thiểu xung đột gradient khi huấn luyện.</li>
+  </ul>
+
+  <!-- MỤC 2: TIỀN XỬ LÝ DỮ LIỆU -->
+  <h2>2. Kỹ thuật Tiền xử lý & Chuẩn hóa Ảnh (Image Processing)</h2>
+  <p>Để đảm bảo suy luận nhất quán và chính xác, mọi hình ảnh và khung hình video đều đi qua quy trình tiền xử lý toán học chuẩn hóa:</p>
+
+  <h3>2.1. Thuật toán Letterbox (Bảo toàn tỷ lệ khung hình)</h3>
+  <p>Khi ảnh đầu vào có tỷ lệ khác với tỷ lệ vuông 1:1 của mô hình (ví dụ ảnh 1920x1080 từ camera hành trình), thuật toán Letterbox sẽ:</p>
+  <ol>
+    <li>Tính toán tỷ lệ co giãn tối đa mà không làm biến dạng hình học: <code>gain = min(640 / width, 640 / height)</code>.</li>
+    <li>Resize ảnh theo tỷ lệ <code>gain</code>.</li>
+    <li>Chèn thêm đệm màu xám (Pixel value = 114) đều vào hai bên hoặc trên/dưới để đạt đúng kích thước <code>640 x 640</code>.</li>
+  </ol>
+
+  <div class="formula-box">
+Tọa độ thực = (Tọa độ chuẩn hóa trên mô hình - Lượng padding) / gain
+  </div>
+
+  <h3>2.2. Chuẩn hóa không gian màu & Tensor</h3>
+  <ul>
+    <li>Chuyển đổi không gian màu từ BGR (OpenCV) sang <strong>RGB</strong>.</li>
+    <li>Chuẩn hóa giá trị pixel từ dải số nguyên <code>[0, 255]</code> sang số thực <code>[0.0, 1.0]</code> bằng phép chia <code>255.0</code>.</li>
+    <li>Hoán vị chiều dữ liệu (Permute) từ dạng HWC (Height x Width x Channel) sang <strong>CHW</strong>: <code>(1, 3, 640, 640)</code>.</li>
+  </ul>
+
+  <!-- MỤC 3: HÀM MẤT MÁT -->
+  <h2>3. Hàm Mất Mát (Loss Functions) & Chiến lược Tối ưu hóa</h2>
+  <p>Quá trình huấn luyện sử dụng hàm tổn thất tổng hợp gồm 3 thành phần chính:</p>
+
+  <div class="formula-box">
+Tổng Loss = &lambda;<sub>box</sub> &middot; L<sub>CIoU</sub> + &lambda;<sub>cls</sub> &middot; L<sub>BCE</sub> + &lambda;<sub>dfl</sub> &middot; L<sub>DFL</sub>
+  </div>
+
+  <ul>
+    <li><strong>CIoU Loss (Complete Intersection over Union):</strong> Đo đạc độ tương đồng của hộp bao dự đoán và nhãn thật dựa trên: diện tích chồng lấn (IoU), khoảng cách giữa 2 tâm hộp và tỷ lệ cạnh dài/ngắn. Khắc phục hoàn toàn nhược điểm của hàm mất mát khoảng cách L1/L2 truyền thống.</li>
+    <li><strong>BCE Loss (Binary Cross-Entropy):</strong> Tính toán tổn thất phân loại độc lập cho 82 lớp biển báo, hỗ trợ đa nhãn hiệu quả.</li>
+    <li><strong>DFL Loss (Distribution Focal Loss):</strong> Hồi quy tọa độ hộp bao dưới dạng phân phối xác suất liên tục thay vì một điểm số cứng nhắc, giúp mô hình bắt viền biển báo sắc nét ngay cả khi bị che khuất một phần.</li>
+  </ul>
+
+  <h3>Chiến lược tối ưu hóa Hyperparameters:</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Siêu tham số</th>
+        <th>Giá trị cấu hình</th>
+        <th>Ý nghĩa kỹ thuật</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Optimizer</td>
+        <td><code>AdamW</code> hoặc <code>SGD with Momentum</code></td>
+        <td>Cân bằng tốc độ hội tụ và khả năng khái quát hóa dữ liệu.</td>
+      </tr>
+      <tr>
+        <td>Learning Rate ban đầu (lr0)</td>
+        <td><code>0.01</code></td>
+        <td>Tốc độ học ban đầu.</td>
+      </tr>
+      <tr>
+        <td>LR Scheduler</td>
+        <td><code>Cosine Annealing</code></td>
+        <td>Hạ dần learning rate theo đường cong cosin, giúp mô hình ổn định tại cực tiểu.</td>
+      </tr>
+      <tr>
+        <td>Mixed Precision (AMP)</td>
+        <td><code>Enabled</code></td>
+        <td>Tự động sử dụng Float16 trong quá trình tính toán để tăng tốc và tiết kiệm 50% VRAM.</td>
+      </tr>
+      <tr>
+        <td>Patience</td>
+        <td><code>10 epochs</code></td>
+        <td>Early stopping: Dừng huấn luyện nếu mAP50 trên tập Validation không tăng sau 10 epoch liên tiếp nhằm chống Overfitting.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- MỤC 4: QUY TRÌNH MLOPS 4 BƯỚC -->
+  <h2>4. Quy trình MLOps 4 Bước Khép Kín trong TrafficVision</h2>
+
+  <div class="callout callout-success">
+    <strong>Triết lý thiết kế:</strong> Mọi thử nghiệm đều phải có tính lặp lại (Reproducibility), có kiểm soát rủi ro và không được can thiệp vào môi trường phục vụ trực tuyến khi chưa được kiểm định đạt chuẩn.
+  </div>
+
+  <h3>Bước 1: Quét Dữ Liệu & Tiếp Nhận (Dataset Ingestion)</h3>
+  <p>Hệ thống quét dữ liệu từ <code>artifacts/staging/</code> với 3 tập: <code>train/</code>, <code>val/</code>, <code>test/</code>. Hỗ trợ tính năng sinh <strong>Synthetic Fixture</strong> (100 mẫu giả lập) để kiểm thử toàn diện mã nguồn pipeline mà không cần tải tập dữ liệu 10.000 ảnh về máy phát triển.</p>
+
+  <h3>Bước 2: Cổng Kiểm Định Quality Gate 5 Tiêu Chí & EDA</h3>
+  <p>Chặn đứng 5 loại lỗi nguy hiểm trước khi tốn tài nguyên huấn luyện:</p>
+  <ul>
+    <li><code>CORRUPT_IMAGE</code>: Loại bỏ ảnh 0-byte, lỗi định dạng tệp hoặc ảnh không giải mã được.</li>
+    <li><code>MALFORMED_YOLO_LINE</code>: Kiểm tra cú pháp dòng nhãn (bắt buộc đúng 5 cột số: <code>class_id center_x center_y width height</code>).</li>
+    <li><code>CLASS_ID_OUT_OF_RANGE</code>: Đảm bảo class ID chỉ nằm trong dải [0, 81] tương ứng với danh mục QCVN 41:2019.</li>
+    <li><code>INVALID_COORDINATES</code>: Bắt buộc tọa độ tâm và kích thước nằm trong khoảng <code>(0, 1]</code>.</li>
+    <li><code>DATA_LEAKAGE</code>: Tính mã băm SHA-256 từng tệp ảnh. Nếu phát hiện cùng một ảnh xuất hiện ở cả tập Train và Val/Test, hệ thống sẽ chặn ngay lập tức để tránh đánh giá gian lận điểm mAP.</li>
+  </ul>
+  <p>Khi vượt qua, hệ thống tạo <strong>Snapshot bất biến</strong> tại <code>artifacts/snapshots/&lt;snapshot_id&gt;/</code> kèm <code>data.yaml</code> và xuất báo cáo <code>eda_report.json</code>.</p>
+
+  <h3>Bước 3: Huấn Luyện Nền Ngầm (Background Subprocess Execution)</h3>
+  <p>Thay vì chạy blocking làm treo giao diện Streamlit, tiến trình huấn luyện được ủy quyền cho một tiến trình hệ thống con độc lập qua module <code>TrainingManager</code>:</p>
+  <ul>
+    <li>Ghi nhật ký thời gian thực vào <code>artifacts/runs/&lt;run_id&gt;/train.log</code>.</li>
+    <li>Cập nhật trạng thái tiến độ vào <code>state.json</code> (epoch hiện tại, loss, mAP, thời gian còn lại).</li>
+    <li>Giao diện Web đọc định kỳ trạng thái để hiển thị biểu đồ và thanh tiến trình.</li>
+    <li>Hỗ trợ ngắt an toàn (Safe Abort): Gửi tín hiệu <code>SIGINT</code> để Ultralytics lưu checkpoint dở dang mà không gây hỏng dữ liệu.</li>
+  </ul>
+
+  <h3>Bước 4: Đóng Gói Ứng Viên (Candidate Packaging) & Thăng Cấp (Promotion)</h3>
+  <p>Sau khi kết thúc huấn luyện, mô hình phải vượt qua 3 bài kiểm tra chất lượng tự động:</p>
+  <ol>
+    <li><strong>Đánh giá độc lập trên tập Test:</strong> Đo đạc Precision, Recall, mAP50, mAP50-95.</li>
+    <li><strong>Xuất ONNX & Kiểm tra Parity:</strong> Xuất sang ONNX đồ thị tĩnh <code>[1, 3, 640, 640]</code>. Chạy cùng một tensor đầu vào trên cả PyTorch và ONNX Runtime CPU, sau đó tính sai số tuyệt đối cực đại:
+      <pre><code>max_abs_diff = np.max(np.abs(torch_output - onnx_output))
+assert max_abs_diff &lt;= 1e-3, "Parity check failed!"</code></pre>
+    </li>
+    <li><strong>Benchmark CPU:</strong> Chạy 100 lần lặp suy luận để xác định FPS trung bình và độ trễ p50, p95.</li>
+  </ol>
+  <p>Chỉ khi đáp ứng toàn bộ điều kiện trên, thư mục <code>artifacts/runs/&lt;run_id&gt;/candidate/</code> mới được tạo kèm <code>manifest.json</code>.</p>
+
+  <!-- MỤC 5: TỐI ƯU HÓA SUY LUẬN ONNX TRÊN CPU -->
+  <h2>5. Kỹ Thuật Tối Ưu Hóa Suy Luận ONNX trên CPU</h2>
+  <p>Nhằm đáp ứng yêu cầu chạy mượt trên máy tính văn phòng hoặc máy tính nhúng, các kỹ thuật sau được tích hợp trong <code>OnnxPredictor</code>:</p>
+  <ul>
+    <li><strong>Đồ thị tĩnh (Static Shape):</strong> Khóa cứng kích thước input <code>1x3x640x640</code> giúp ONNX Runtime cấp phát trước bộ nhớ (pre-allocate memory), tránh hiện tượng phân mảnh RAM.</li>
+    <li><strong>Graph Optimization Level:</strong> Bật mức <code>ORT_ENABLE_ALL</code>, thực hiện gộp các phép tính liền kề (Constant Folding, Node Fusion như Conv + BatchNorm + SiLU thành một toán tử duy nhất).</li>
+    <li><strong>Đa luồng CPU (Inter & Intra Op):</strong> Thiết lập số luồng tính toán tương ứng với số nhân vật lý của CPU thông qua OpenMP/AVX2.</li>
+    <li><strong>Hậu xử lý NMS tối ưu (Fast Non-Maximum Suppression):</strong> Lọc nhanh các hộp bao có confidence &lt; ngưỡng cài đặt, sau đó chỉ chạy IoU trên tập ứng viên còn lại, giảm độ phức tạp thuật toán từ $O(N^2)$ xuống $O(k \log k)$.</li>
+  </ul>
+
+  <!-- MỤC 6: AN TOÀN VẬN HÀNH -->
+  <h2>6. Cơ Chế An Toàn Vận Hành: Safe Atomic Swap & Rollback</h2>
+  <p>Một điểm đột phá trong thiết kế của TrafficVision là sự đảm bảo an toàn tuyệt đối khi triển khai mô hình:</p>
+
+  <div class="diagram-box">
+[ Thăng cấp Candidate Mới ]
+           │
+           ▼
+┌──────────────────────────────────────────┐
+│ 1. Sao lưu tự động (Automatic Backup)     │
+│    Sao chép Production hiện tại sang     │
+│    artifacts/backups/backup_&lt;timestamp&gt;/ │
+└──────────────────┬───────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────┐
+│ 2. Hoán đổi nguyên tử (Atomic Copy)      │
+│    Ghi đè model.onnx & manifest.json     │
+│    vào artifacts/production/             │
+└──────────────────┬───────────────────────┘
+                   │
+                   ▼
+┌──────────────────────────────────────────┐
+│ 3. Hậu kiểm tra tính toàn vẹn (Verify)   │
+│    Kiểm tra mã băm SHA-256 & nạp thử     │
+└──────────────────┬───────────────────────┘
+          /                      (Thành công)          (Phát hiện lỗi)
+          │                         │
+          ▼                         ▼
+   [ Hoàn tất ]             [ Tự động Rollback ]
+                            Khôi phục từ bản Backup
+  </div>
+
+  <p>Người quản trị có thể kích hoạt hoàn tác bất kỳ lúc nào chỉ bằng lệnh dòng lệnh <code>python scripts/promote_model.py --rollback</code> hoặc bấm nút trên giao diện Web.</p>
+
+  <footer style="margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: #64748b; text-align: center;">
+    Tài liệu kỹ thuật TrafficVision • Lưu hành nội bộ và phục vụ hội đồng bảo vệ dự án 2026
+  </footer>
+</div>
+
+</body>
+</html>
