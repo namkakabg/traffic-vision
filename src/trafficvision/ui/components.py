@@ -49,8 +49,44 @@ def format_display_name(c_name: str) -> str:
 
 
 def extract_mini_badge(c_name: str, c_id: str = "") -> tuple[str, str]:
-    """Extract recognized text (e.g. 'STOP', '50') or icon and style for mini circular badge."""
+    """Return the most meaningful compact pictogram for a detected class."""
     lower = c_name.lower()
+
+    # Prefer a pictogram that reflects the named sign over a broad sign category.
+    named_sign_icons = (
+        ("cấm đi ngược chiều", "⛔", "#e74444"),
+        ("cấm xe tải", "🚚", "#e74444"),
+        ("cấm xe buýt", "🚌", "#e74444"),
+        ("cấm ô tô", "🚗", "#e74444"),
+        ("cấm mô tô", "🏍️", "#e74444"),
+        ("cấm xe máy", "🏍️", "#e74444"),
+        ("cấm còi", "📯", "#e74444"),
+        ("cấm đỗ xe", "P", "#e74444"),
+        ("cấm rẽ trái", "↰", "#e74444"),
+        ("cấm rẽ phải", "↱", "#e74444"),
+        ("cấm quay đầu", "↶", "#e74444"),
+        ("đi về bên phải", "→", "#2563eb"),
+        ("đi về bên trái", "←", "#2563eb"),
+        ("rẽ trái", "←", "#2563eb"),
+        ("rẽ phải", "→", "#2563eb"),
+        ("vòng xuyến", "↻", "#2563eb"),
+        ("nơi quay đầu", "↶", "#0ea5e9"),
+        ("camera", "📷", "#0ea5e9"),
+        ("trẻ em", "🧒", "#f59e0b"),
+        ("đường dành cho người đi bộ", "🚶", "#2563eb"),
+        ("người đi bộ", "🚶", "#f59e0b"),
+        ("đèn giao thông", "🚦", "#f59e0b"),
+        ("đèn xanh", "🟢", "#18a77d"),
+        ("đèn đỏ", "🔴", "#e74444"),
+        ("đường sắt", "🚆", "#f59e0b"),
+        ("công trường", "🚧", "#f59e0b"),
+        ("bến xe buýt", "🚌", "#0ea5e9"),
+        ("bệnh viện", "H+", "#0ea5e9"),
+        ("chỗ đỗ xe", "P", "#0ea5e9"),
+    )
+    for keyword, icon, color in named_sign_icons:
+        if keyword in lower:
+            return icon, f"border-color: {color}; font-size: 13px;"
 
     # 1. Stop sign -> text 'STOP' in bold red matching real stop signs
     if "stop" in lower:
@@ -83,7 +119,13 @@ def extract_mini_badge(c_name: str, c_id: str = "") -> tuple[str, str]:
     # 5. Vietnamese Traffic Sign Categories
     if lower.startswith("p.") or "cam" in lower or "cấm" in lower:
         return "⛔", "border-color: #e74444; font-size: 13px;"
-    if lower.startswith("w.") or "nguy_hiem" in lower or "canh_bao" in lower:
+    if (
+        lower.startswith("w.")
+        or "nguy_hiem" in lower
+        or "canh_bao" in lower
+        or "nguy hiểm" in lower
+        or "cảnh báo" in lower
+    ):
         return "⚠️", "border-color: #f59e0b; font-size: 13px;"
     if lower.startswith("r.") or "hieu_lenh" in lower:
         return "🔵", "border-color: #2563eb; font-size: 13px;"
@@ -106,7 +148,7 @@ def extract_mini_badge(c_name: str, c_id: str = "") -> tuple[str, str]:
         if k in lower:
             return v, "border-color: #2563eb; font-size: 13px;"
 
-    return "🚦", "border-color: #2563eb; font-size: 13px;"
+    return "◇", "border-color: #64748b; color: #64748b; font-size: 13px;"
 
 
 def render_detection_summary(

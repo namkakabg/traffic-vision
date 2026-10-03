@@ -36,7 +36,10 @@ htmlcov/
 .streamlit/secrets.toml
 
 # Project runtime data and artifacts (per plan Global Constraints)
-/artifacts/
+/artifacts/backups/
+/artifacts/outputs/
+/artifacts/snapshots/
+/artifacts/staging/
 /data/
 /reports/
 *.pt

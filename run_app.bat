@@ -83,6 +83,14 @@ echo [*] Trinh duyet se tu dong mo tai http://localhost:8501
 echo [*] Nhan Ctrl+C tai cua so nay de dung ung dung.
 echo.
 "%PYTHON_EXE%" -m streamlit run app.py
+if errorlevel 1 (
+    echo.
+    echo [!] Dashboard da dung do loi. Cua so nay se giu nguyen de ban doc thong bao loi o tren.
+    echo     Kiem tra moi truong Python va cai dat lai thu vien neu Streamlit chua co.
+    echo.
+    pause
+    goto MENU
+)
 goto EXIT
 
 :RUN_TEST

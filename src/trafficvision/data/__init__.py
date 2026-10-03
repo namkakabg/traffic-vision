@@ -18,6 +18,7 @@ from trafficvision.data.eda import (
     generate_eda_report,
     save_eda_summary,
 )
+from trafficvision.data.repair import DatasetRepairReport, repair_yolo_dataset
 from trafficvision.data.snapshot import (
     DatasetSnapshot,
     create_dataset_snapshot,
@@ -44,6 +45,8 @@ __all__ = [
     "validate_dataset",
     "DatasetSnapshot",
     "create_dataset_snapshot",
+    "DatasetRepairReport",
+    "repair_yolo_dataset",
     "create_synthetic_dataset",
     "EDAMetrics",
     "generate_eda_report",

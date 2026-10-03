@@ -5,11 +5,65 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from trafficvision.domain import ModelManifest
 from trafficvision.registry import sha256_file
+from trafficvision.training import candidate
 from trafficvision.training.candidate import package_candidate
 from trafficvision.training.evaluator import EvaluationMetrics
 from trafficvision.training.exporter import ExportResult
+
+
+def test_finalize_checkpoint_creates_candidate_from_completed_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A completed run checkpoint must become a selectable candidate without retraining."""
+    runs_dir = tmp_path / "artifacts" / "runs"
+    run_id = "run_completed"
+    run_dir = runs_dir / run_id
+    checkpoint = run_dir / "weights" / "best.pt"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_bytes(b"trained-checkpoint")
+    data_yaml = tmp_path / "data.yaml"
+    data_yaml.write_text("names:\n  0: Stop\n  1: Yield\n", encoding="utf-8")
+    exported_onnx = tmp_path / "exported.onnx"
+    exported_onnx.write_bytes(b"exported-onnx")
+
+    metrics = EvaluationMetrics(
+        precision=0.91,
+        recall=0.89,
+        f1=0.90,
+        map50=0.92,
+        map50_95=0.73,
+    )
+    exported = ExportResult(
+        onnx_path=exported_onnx,
+        max_abs_diff=0.0002,
+        is_parity_valid=True,
+        cpu_latency_ms=13.4,
+        cpu_fps=74.6,
+    )
+    monkeypatch.setattr(candidate, "evaluate_checkpoint", lambda **_: metrics, raising=False)
+    monkeypatch.setattr(candidate, "export_and_verify_onnx", lambda **_: exported, raising=False)
+
+    finalizer = getattr(candidate, "finalize_checkpoint", None)
+    assert callable(finalizer)
+    candidate_dir = finalizer(
+        run_id=run_id,
+        checkpoint_path=checkpoint,
+        data_yaml=data_yaml,
+        runs_dir=runs_dir,
+        device="cpu",
+        imgsz=640,
+    )
+
+    manifest = ModelManifest.model_validate_json((candidate_dir / "manifest.json").read_text())
+    assert manifest.stage == "candidate"
+    assert manifest.class_names == {0: "Stop", 1: "Yield"}
+    assert manifest.metrics is not None
+    assert manifest.metrics["map50"] == 0.92
+    assert (candidate_dir / "model.onnx").read_bytes() == b"exported-onnx"
 
 
 def test_package_candidate_success(tmp_path: Path):

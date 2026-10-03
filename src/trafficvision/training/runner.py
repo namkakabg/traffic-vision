@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import shutil
 import time
@@ -14,6 +15,7 @@ from typing import Any
 from trafficvision.training.config import TrainingConfig
 from trafficvision.training.state import TrainingEvent, TrainingState
 
+logger = logging.getLogger(__name__)
 
 def _sync_checkpoints(
     run_dir: Path,
@@ -103,7 +105,10 @@ def run_training_subprocess(
         # Default Ultralytics YOLO training execution
         from ultralytics import YOLO  # lazy import
 
-        model = YOLO(config.base_model)
+        resume_checkpoint = config.resume_checkpoint
+        if resume_checkpoint is not None and not resume_checkpoint.is_file():
+            raise FileNotFoundError(f"Resume checkpoint not found: {resume_checkpoint}")
+        model = YOLO(str(resume_checkpoint) if resume_checkpoint is not None else config.base_model)
 
         def on_fit_epoch_end(trainer: Any) -> None:
             nonlocal stopped_early
@@ -147,19 +152,26 @@ def run_training_subprocess(
         model.add_callback("on_fit_epoch_end", on_fit_epoch_end)
 
         try:
+            train_kwargs: dict[str, Any] = {
+                "data": str(config.data_yaml),
+                "epochs": config.epochs,
+                "batch": config.batch,
+                "workers": config.workers,
+                "imgsz": config.imgsz,
+                "patience": config.patience,
+                "amp": config.amp,
+                "device": config.device,
+                "seed": config.seed,
+                "project": str(run_dir),
+                "name": "yolo_train",
+                "exist_ok": True,
+                "verbose": False,
+            }
+            if resume_checkpoint is not None:
+                train_kwargs["resume"] = True
+
             model.train(
-                data=str(config.data_yaml),
-                epochs=config.epochs,
-                batch=config.batch,
-                imgsz=config.imgsz,
-                patience=config.patience,
-                amp=config.amp,
-                device=config.device,
-                seed=config.seed,
-                project=str(run_dir),
-                name="yolo_train",
-                exist_ok=True,
-                verbose=False,
+                **train_kwargs,
             )
         except Exception as exc:
             state.status = "failed"
@@ -181,6 +193,23 @@ def run_training_subprocess(
 
     state.elapsed_s = round(time.time() - start_time, 2)
     state.to_file(state_file)
+
+    if state.status == "completed" and train_fn is None:
+        from trafficvision.training.candidate import finalize_checkpoint
+
+        try:
+            finalize_checkpoint(
+                run_id=config.run_id,
+                checkpoint_path=weights_dir / "best.pt",
+                data_yaml=config.data_yaml,
+                runs_dir=run_dir.parent,
+                device=config.device,
+                imgsz=config.imgsz,
+            )
+        except Exception:
+            # Training remains completed; Step 4 can retry this checkpoint without retraining.
+            logger.exception("Candidate packaging failed for completed run %s", config.run_id)
+
     return state
 
 

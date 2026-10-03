@@ -15,11 +15,13 @@ class TrainingConfig(BaseModel):
     base_model: str = "yolo11n.pt"
     epochs: int = Field(default=50, ge=1)
     batch: int = Field(default=4, ge=1)
+    workers: int = Field(default=0, ge=0)
     imgsz: int = Field(default=640, gt=0)
     patience: int = Field(default=10, ge=0)
     amp: bool = True
     device: str = "cpu"
     seed: int = 42
+    resume_checkpoint: Path | None = None
 
     model_config = {"arbitrary_types_allowed": True}
 

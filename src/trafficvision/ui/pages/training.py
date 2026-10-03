@@ -14,7 +14,9 @@ from trafficvision.data.eda import generate_eda_report
 from trafficvision.data.snapshot import DatasetSnapshot, create_dataset_snapshot
 from trafficvision.data.synthetic import create_synthetic_dataset
 from trafficvision.data.validator import ValidationReport, validate_dataset
+from trafficvision.training.candidate import finalize_checkpoint
 from trafficvision.training.config import TrainingConfig
+from trafficvision.training.hardware import TrainingDevice, detect_training_devices
 from trafficvision.training.state import TrainingState
 from trafficvision.ui.theme import clean_html
 
@@ -22,17 +24,52 @@ if TYPE_CHECKING:
     from trafficvision.ui.app import AppServices
 
 
-def _get_hardware_status() -> tuple[bool, str]:
-    """Detect available accelerator hardware (CUDA GPU or CPU fallback)."""
-    try:
-        import torch
+def training_status_presentation(
+    state: TrainingState | None, log_lines: list[str]
+) -> tuple[str, str]:
+    """Return an honest status badge and fallback log message for a run."""
+    if state is None:
+        return (
+            '<span style="color:#718096; font-weight:850; font-size:10px;">● CHO KHOI CHAY</span>',
+            "<strong>Trang thai:</strong> San sang. Nhan 'Bat dau huan luyen' de khoi tao tien trinh nen.",
+        )
+    if state.status == "running" and state.current_epoch == 0:
+        return (
+            '<span style="color:#d97706; font-weight:850; font-size:10px;">● ĐANG KHỞI TẠO</span>',
+            "<strong>Trạng thái:</strong> Đang khởi tạo tiến trình nền; đang tải tài nguyên Ultralytics nếu cần.",
+        )
+    if state.status == "running":
+        return (
+            '<span style="color:#168561; font-weight:850; font-size:10px;">● DANG HUAN LUYEN</span>',
+            "<strong>Trang thai:</strong> Dang huan luyen.",
+        )
+    if state.status == "completed":
+        return (
+            '<span style="color:#2563eb; font-weight:850; font-size:10px;">● HOAN THANH</span>',
+            "<strong>Trang thai:</strong> Hoan thanh.",
+        )
+    if state.status in ("failed", "stopped"):
+        return (
+            f'<span style="color:#dc2626; font-weight:850; font-size:10px;">● {state.status.upper()}</span>',
+            f"<strong>Trang thai:</strong> {state.status.upper()}.",
+        )
+    return (
+        f'<span style="color:#718096; font-weight:850; font-size:10px;">● {state.status.upper()}</span>',
+        f"<strong>Trang thai:</strong> {state.status.upper()}.",
+    )
 
-        if torch.cuda.is_available():
-            name = torch.cuda.get_device_name(0)
-            return True, f"● CUDA khả dụng · {name}"
-    except Exception:
-        pass
-    return False, "● Chế độ CPU · Huấn luyện nền độc lập"
+
+def live_progress_refresh_interval(state: TrainingState | None) -> int | None:
+    """Refresh only while a background training process is still active."""
+    return 3 if state is not None and state.status == "running" else None
+
+
+def resumable_checkpoint(state: TrainingState | None, run_dir: Path) -> Path | None:
+    """Return a saved last checkpoint only when the run can safely be resumed."""
+    if state is None or state.status not in {"failed", "stopped"}:
+        return None
+    checkpoint = Path(state.checkpoint_paths.get("last", run_dir / "weights" / "last.pt"))
+    return checkpoint if checkpoint.is_file() else None
 
 
 def _format_seconds(seconds: float) -> str:
@@ -63,9 +100,42 @@ def _find_candidates(runs_dir: Path) -> list[tuple[str, Path]]:
     return candidates
 
 
+def _find_finalizable_runs(runs_dir: Path) -> list[tuple[str, Path, Path, TrainingConfig]]:
+    """Return completed runs with best.pt that have not yet produced a Candidate."""
+    finalizable: list[tuple[str, Path, Path, TrainingConfig]] = []
+    if not runs_dir.is_dir():
+        return finalizable
+
+    for run_dir in runs_dir.iterdir():
+        state_file = run_dir / "state.json"
+        config_file = run_dir / "run_config.json"
+        checkpoint = run_dir / "weights" / "best.pt"
+        if not (state_file.is_file() and config_file.is_file() and checkpoint.is_file()):
+            continue
+        if (run_dir / "candidate" / "manifest.json").is_file():
+            continue
+        try:
+            state = TrainingState.from_file(state_file)
+            config = TrainingConfig.model_validate_json(config_file.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if state.status == "completed":
+            finalizable.append((run_dir.name, run_dir, checkpoint, config))
+
+    finalizable.sort(key=lambda item: item[0], reverse=True)
+    return finalizable
+
+
 def render_training_page(services: AppServices) -> None:
     """Render the active 4-step AI Experiment Lab interface matching training-interface.html."""
-    has_cuda, gpu_badge = _get_hardware_status()
+    training_devices = detect_training_devices()
+    default_training_device = training_devices[0]
+    has_cuda = default_training_device.is_cuda
+    gpu_badge = (
+        f"● CUDA khả dụng · {default_training_device.label.removeprefix('GPU 0 - ')}"
+        if has_cuda
+        else "● Chế độ CPU · Không có CUDA khả dụng trong môi trường Python"
+    )
     paths = services.config.paths
     runs_dir = paths.runs
     training_mgr = services.training_manager
@@ -439,10 +509,28 @@ def render_training_page(services: AppServices) -> None:
                     "Patience", min_value=0, max_value=100, value=10, key="cfg_patience"
                 )
 
+            cfg_workers = st.number_input(
+                "DataLoader workers", min_value=0, max_value=2, value=0, key="cfg_workers",
+                help="0 là mức an toàn trên Windows khi RAM hạn chế.",
+            )
+
             cfg_amp = st.checkbox("Mixed precision (AMP)", value=True, key="cfg_amp")
             st.checkbox("Lưu checkpoint mỗi epoch", value=True, key="cfg_save_ckpt")
 
-            device_choice = "0" if has_cuda else "cpu"
+            device_by_value: dict[str, TrainingDevice] = {
+                device.value: device for device in training_devices
+            }
+            device_choice = st.selectbox(
+                "Thiết bị huấn luyện",
+                options=list(device_by_value),
+                format_func=lambda value: device_by_value[value].label,
+                index=0,
+                key="train_device",
+            )
+            if device_by_value[device_choice].is_cuda:
+                st.caption("GPU đã được xác minh bằng PyTorch và sẽ được dùng cho run mới.")
+            else:
+                st.caption("CPU được chọn. GPU chỉ xuất hiện khi PyTorch CUDA nhận diện được nó.")
 
             # Check if training can start
             is_running = current_state is not None and current_state.status == "running"
@@ -470,8 +558,13 @@ def render_training_page(services: AppServices) -> None:
             )
 
             btn_start_disabled = not can_start
+            resume_checkpoint = (
+                resumable_checkpoint(current_state, runs_dir / current_run_id)
+                if current_run_id is not None
+                else None
+            )
 
-            btn_col1, btn_col2 = st.columns(2, gap="small")
+            btn_col1, btn_col2, btn_col3 = st.columns(3, gap="small")
             with btn_col1:
                 btn_start = st.button(
                     "🚀 Bắt đầu huấn luyện",
@@ -481,6 +574,14 @@ def render_training_page(services: AppServices) -> None:
                     use_container_width=True,
                 )
             with btn_col2:
+                btn_resume = st.button(
+                    "↻ Tiếp tục run lỗi",
+                    key="btn_resume_training",
+                    disabled=resume_checkpoint is None,
+                    use_container_width=True,
+                    help="Tiếp tục từ last.pt và tự động dùng workers=0.",
+                )
+            with btn_col3:
                 btn_stop = st.button(
                     "⏹ Dừng huấn luyện",
                     key="btn_stop_training",
@@ -508,6 +609,7 @@ def render_training_page(services: AppServices) -> None:
                         base_model=base_model,
                         epochs=int(cfg_epochs),
                         batch=int(cfg_batch),
+                        workers=int(cfg_workers),
                         imgsz=int(cfg_imgsz),
                         patience=int(cfg_patience),
                         amp=cfg_amp,
@@ -521,6 +623,16 @@ def render_training_page(services: AppServices) -> None:
                     )
                 except Exception as exc:
                     st.error(f"Lỗi khởi động huấn luyện: {exc}")
+
+            if btn_resume and current_run_id and training_mgr is not None:
+                try:
+                    current_state = training_mgr.resume_training(current_run_id)
+                    st.success(
+                        f"Đã tiếp tục `{current_run_id}` từ `{resume_checkpoint.name}` "
+                        f"với workers=0 (PID {current_state.pid})."
+                    )
+                except Exception as exc:
+                    st.error(f"Không thể tiếp tục huấn luyện: {exc}")
 
             if btn_stop and current_run_id and training_mgr is not None:
                 try:
@@ -547,15 +659,7 @@ def render_training_page(services: AppServices) -> None:
                     f"{val_loss:.3f}" if isinstance(val_loss, (int, float)) else str(val_loss)
                 )
                 disp_time = _format_seconds(current_state.elapsed_s)
-                status_label = current_state.status.upper()
-                if current_state.status == "running":
-                    status_badge = '<span style="color:#168561; font-weight:850; font-size:10px;">● ĐANG HUẤN LUYỆN</span>'
-                elif current_state.status == "completed":
-                    status_badge = '<span style="color:#2563eb; font-weight:850; font-size:10px;">● HOÀN THÀNH</span>'
-                elif current_state.status in ("failed", "stopped"):
-                    status_badge = f'<span style="color:#dc2626; font-weight:850; font-size:10px;">● {status_label}</span>'
-                else:
-                    status_badge = f'<span style="color:#718096; font-weight:850; font-size:10px;">● {status_label}</span>'
+                status_badge, _ = training_status_presentation(current_state, [])
                 progress_val = min(
                     1.0, current_state.current_epoch / max(1, current_state.total_epochs)
                 )
@@ -564,7 +668,7 @@ def render_training_page(services: AppServices) -> None:
                 disp_map50 = "0.000"
                 disp_loss = "0.000"
                 disp_time = "0s"
-                status_badge = '<span style="color:#718096; font-weight:850; font-size:10px;">● CHỜ KHỞI CHẠY</span>'
+                status_badge, _ = training_status_presentation(None, [])
                 progress_val = 0.0
 
             st.markdown(
@@ -644,7 +748,7 @@ def render_training_page(services: AppServices) -> None:
                     log_lines = []
 
             if not log_lines:
-                log_content = "<strong>Trạng thái:</strong> Sẵn sàng. Nhấn 'Bắt đầu huấn luyện' để khởi tạo tiến trình nền."
+                _, log_content = training_status_presentation(current_state, log_lines)
             else:
                 log_content = "<br/>".join(
                     line.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -659,6 +763,30 @@ def render_training_page(services: AppServices) -> None:
                 """),
                 unsafe_allow_html=True,
             )
+
+            if live_progress_refresh_interval(current_state) is not None:
+                log_path = runs_dir / current_run_id / "train.log" if current_run_id else None
+                initial_log_mtime = (
+                    log_path.stat().st_mtime_ns if log_path and log_path.is_file() else None
+                )
+
+                @st.fragment(run_every=3)
+                def poll_training_progress() -> None:
+                    """Reload the page whenever the worker writes new state or logs."""
+                    refreshed_state = current_state
+                    if training_mgr is not None and current_run_id:
+                        try:
+                            refreshed_state = training_mgr.get_state(current_run_id)
+                        except Exception:
+                            pass
+                    refreshed_log_mtime = (
+                        log_path.stat().st_mtime_ns if log_path and log_path.is_file() else None
+                    )
+                    if refreshed_state != current_state or refreshed_log_mtime != initial_log_mtime:
+                        st.rerun()
+                    st.caption("Đang tự cập nhật tiến trình mỗi 3 giây.")
+
+                poll_training_progress()
 
         # Footer Grid matching mockup
         st.markdown(
@@ -690,10 +818,44 @@ def render_training_page(services: AppServices) -> None:
         st.subheader("4. Đánh giá chất lượng độc lập & Thăng cấp mô hình (Promotion)")
 
         if not candidates:
-            st.info(
-                "Chưa có mô hình ứng viên (Candidate) nào hoàn tất. "
-                "Sau khi tiến trình huấn luyện ở Bước 3 kết thúc, mô hình sẽ được đóng gói ứng viên tại đây."
-            )
+            finalizable_runs = _find_finalizable_runs(runs_dir)
+            if not finalizable_runs:
+                st.info(
+                    "Chưa có mô hình ứng viên (Candidate) nào hoàn tất. "
+                    "Sau khi tiến trình huấn luyện ở Bước 3 kết thúc, mô hình sẽ được đóng gói ứng viên tại đây."
+                )
+            else:
+                st.warning(
+                    "Đã tìm thấy checkpoint huấn luyện hoàn tất nhưng chưa có Candidate. "
+                    "Bạn có thể đánh giá và xuất lại mà không phải huấn luyện lại."
+                )
+                run_options = {item[0]: item for item in finalizable_runs}
+                selected_run_id = st.selectbox(
+                    "Chọn run cần đánh giá & xuất:",
+                    list(run_options),
+                    key="select_finalizable_run",
+                )
+                _, _, checkpoint, run_config = run_options[selected_run_id]
+                if st.button(
+                    "Đánh giá & xuất checkpoint",
+                    key="btn_finalize_checkpoint",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    try:
+                        with st.spinner("Đang đánh giá test, xuất ONNX và đóng gói Candidate..."):
+                            candidate_dir = finalize_checkpoint(
+                                run_id=selected_run_id,
+                                checkpoint_path=checkpoint,
+                                data_yaml=run_config.data_yaml,
+                                runs_dir=runs_dir,
+                                device=run_config.device,
+                                imgsz=run_config.imgsz,
+                            )
+                        st.success(f"Đã tạo Candidate tại `{candidate_dir}`. Bạn có thể thăng cấp lên Production.")
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(f"Đánh giá & xuất thất bại: {exc}")
         else:
             cand_names = [c[0] for c in candidates]
             default_cand_idx = 0

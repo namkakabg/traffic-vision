@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import onnx
@@ -11,6 +12,12 @@ from trafficvision.registry import ModelRegistry, sha256_file
 from trafficvision.training.candidate import package_candidate
 from trafficvision.training.evaluator import EvaluationMetrics
 from trafficvision.training.exporter import ExportResult
+from trafficvision.training.state import TrainingState
+from trafficvision.ui.pages import training as training_page
+from trafficvision.ui.pages.training import (
+    live_progress_refresh_interval,
+    training_status_presentation,
+)
 
 
 def setup_test_environment(tmp_path: Path):
@@ -261,6 +268,33 @@ def test_step3_training_controls_and_live_polling(tmp_path: Path, monkeypatch):
     assert "loss" in all_text.lower()
 
 
+def test_running_training_without_an_epoch_is_presented_as_initializing():
+    badge, log_message = training_status_presentation(
+        TrainingState(run_id="starting", status="running", total_epochs=50), []
+    )
+
+    assert "KHỞI TẠO" in badge
+    assert "khởi tạo" in log_message.lower()
+    assert "sẵn sàng" not in log_message.lower()
+
+
+def test_running_training_refreshes_only_while_the_process_is_active():
+    assert live_progress_refresh_interval(TrainingState(run_id="active", status="running")) == 3
+    assert live_progress_refresh_interval(TrainingState(run_id="done", status="completed")) is None
+    assert live_progress_refresh_interval(None) is None
+
+
+def test_failed_training_exposes_last_checkpoint_for_one_click_resume(tmp_path: Path):
+    """The UI only offers a resume action for an interrupted run with a checkpoint."""
+    checkpoint = tmp_path / "weights" / "last.pt"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_bytes(b"checkpoint")
+    checkpoint_finder = getattr(training_page, "resumable_checkpoint", None)
+
+    assert callable(checkpoint_finder)
+    assert checkpoint_finder(TrainingState(run_id="interrupted", status="failed"), tmp_path) == checkpoint
+
+
 def test_step4_evaluation_and_production_promotion(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("TRAFFICVISION_ROOT", str(tmp_path))
     paths, _ = setup_test_environment(tmp_path)
@@ -295,3 +329,32 @@ def test_step4_evaluation_and_production_promotion(tmp_path: Path, monkeypatch):
     prod = reg.get_production()
     assert len(prod.manifest.class_names) == 82
     assert prod.manifest.stage == "production"
+
+
+def test_step4_offers_export_for_completed_run_with_checkpoint(tmp_path: Path, monkeypatch):
+    """A completed run with best.pt but no candidate must offer the no-retrain export action."""
+    monkeypatch.setenv("TRAFFICVISION_ROOT", str(tmp_path))
+    paths, _ = setup_test_environment(tmp_path)
+    run_dir = paths.runs / "run_needs_export"
+    checkpoint = run_dir / "weights" / "best.pt"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_bytes(b"trained-checkpoint")
+    data_yaml = tmp_path / "data.yaml"
+    data_yaml.write_text("names:\n  0: Stop\n", encoding="utf-8")
+    TrainingState(
+        run_id="run_needs_export",
+        status="completed",
+        checkpoint_paths={"best": str(checkpoint)},
+    ).to_file(run_dir / "state.json")
+    (run_dir / "run_config.json").write_text(
+        json.dumps({"run_id": "run_needs_export", "data_yaml": str(data_yaml)}),
+        encoding="utf-8",
+    )
+
+    app_path = str(Path(__file__).parents[2] / "app.py")
+    at = AppTest.from_file(app_path, default_timeout=25)
+    at.run()
+    at.sidebar.radio[0].set_value("Huấn luyện AI").run()
+
+    assert not at.exception
+    assert any("Đánh giá & xuất checkpoint" in button.label for button in at.button)

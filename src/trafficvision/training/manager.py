@@ -60,6 +60,40 @@ class TrainingManager:
         self.runner_cmd = runner_cmd
         self.runner_module = runner_module
 
+    def _launch_runner(
+        self, config_path: Path, run_dir: Path, state: TrainingState
+    ) -> TrainingState:
+        """Launch the runner for a prepared run and persist its process ID."""
+        if self.runner_cmd is not None:
+            cmd = list(self.runner_cmd) + ["--config", str(config_path)]
+        else:
+            cmd = [
+                str(self.python_executable),
+                "-m",
+                self.runner_module,
+                "--config",
+                str(config_path),
+            ]
+
+        env = dict(os.environ)
+        src_path = str((self.working_dir / "src").resolve())
+        curr_ppath = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = f"{src_path}{os.pathsep}{curr_ppath}" if curr_ppath else src_path
+
+        with open(run_dir / "train.log", "a", encoding="utf-8") as log_file:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                cwd=str(self.working_dir),
+                env=env,
+            )
+
+        (run_dir / "run.pid").write_text(str(proc.pid), encoding="utf-8")
+        state.pid = proc.pid
+        state.to_file(run_dir / "state.json")
+        return state
+
     def start_training(self, config: TrainingConfig) -> TrainingState:
         """Start a new background training run.
 
@@ -90,44 +124,39 @@ class TrainingManager:
         )
         state.to_file(state_file)
 
-        # 3. Form subprocess command
-        if self.runner_cmd is not None:
-            cmd = list(self.runner_cmd) + ["--config", str(config_path)]
-        else:
-            cmd = [
-                str(self.python_executable),
-                "-m",
-                self.runner_module,
-                "--config",
-                str(config_path),
-            ]
+        return self._launch_runner(config_path, run_dir, state)
 
-        # 4. Prepare environment with PYTHONPATH
-        env = dict(os.environ)
-        src_path = str((self.working_dir / "src").resolve())
-        curr_ppath = env.get("PYTHONPATH", "")
-        if curr_ppath:
-            env["PYTHONPATH"] = f"{src_path}{os.pathsep}{curr_ppath}"
-        else:
-            env["PYTHONPATH"] = src_path
+    def resume_training(self, run_id: str) -> TrainingState:
+        """Resume a failed or stopped run from its last complete checkpoint.
 
-        # 5. Open train.log and launch background process (closed in parent immediately)
-        with open(run_dir / "train.log", "a", encoding="utf-8") as log_file:
-            proc = subprocess.Popen(
-                cmd,
-                stdout=log_file,
-                stderr=subprocess.STDOUT,
-                cwd=str(self.working_dir),
-                env=env,
-            )
+        Resume uses no DataLoader subprocesses by default to avoid exhausting
+        Windows system memory after an interrupted training run.
+        """
+        run_dir = self.runs_dir / run_id
+        config_path = run_dir / "run_config.json"
+        state_path = run_dir / "state.json"
+        if not config_path.is_file() or not state_path.is_file():
+            raise FileNotFoundError(f"Run configuration or state not found for run_id: '{run_id}'")
 
-        # 5. Record PID
-        pid_file = run_dir / "run.pid"
-        pid_file.write_text(str(proc.pid), encoding="utf-8")
+        state = TrainingState.from_file(state_path)
+        if state.status not in {"failed", "stopped"}:
+            raise ValueError(f"Only failed or stopped runs can be resumed, got: {state.status}")
 
-        state.pid = proc.pid
-        state.to_file(state_file)
-        return state
+        checkpoint_path = Path(state.checkpoint_paths.get("last", run_dir / "weights" / "last.pt"))
+        if not checkpoint_path.is_file():
+            raise FileNotFoundError(f"Last checkpoint not found for run_id: '{run_id}'")
+
+        config = TrainingConfig.model_validate_json(config_path.read_text(encoding="utf-8"))
+        resumed_config = config.model_copy(
+            update={"workers": 0, "resume_checkpoint": checkpoint_path.resolve()}
+        )
+        config_path.write_text(resumed_config.model_dump_json(indent=2), encoding="utf-8")
+
+        state.status = "running"
+        state.error_message = None
+        state.pid = None
+        state.to_file(state_path)
+        return self._launch_runner(config_path, run_dir, state)
 
     def get_state(self, run_id: str) -> TrainingState:
         """Retrieve and synchronize the current state of a training run.

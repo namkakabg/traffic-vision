@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sys
+import types
 from pathlib import Path
 from typing import Any
 
@@ -173,3 +175,101 @@ def test_runner_syncs_checkpoints_mid_run_and_preserves_on_crash(tmp_path: Path)
     saved_state = TrainingState.from_file(run_dir / "state.json")
     assert saved_state.status == "failed"
     assert "last" in saved_state.checkpoint_paths
+
+
+def test_runner_resumes_checkpoint_with_configured_safe_worker_count(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A restart must pass the saved checkpoint and worker limit to Ultralytics."""
+    run_dir = tmp_path / "run_resume"
+    weights_dir = run_dir / "weights"
+    weights_dir.mkdir(parents=True)
+    checkpoint = weights_dir / "last.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    captured: dict[str, Any] = {}
+
+    class FakeYOLO:
+        trainer = None
+
+        def __init__(self, model_path: str) -> None:
+            captured["model_path"] = model_path
+
+        def add_callback(self, event: str, callback: Any) -> None:
+            captured["callback_event"] = event
+
+        def train(self, **kwargs: Any) -> None:
+            captured["train_kwargs"] = kwargs
+
+    monkeypatch.setitem(sys.modules, "ultralytics", types.SimpleNamespace(YOLO=FakeYOLO))
+    config = TrainingConfig(
+        run_id="run_resume",
+        data_yaml=tmp_path / "data.yaml",
+        epochs=10,
+        batch=2,
+        workers=0,
+        resume_checkpoint=checkpoint,
+    )
+    config_file = run_dir / "run_config.json"
+    config_file.write_text(config.model_dump_json(), encoding="utf-8")
+
+    final_state = run_training_subprocess(config_file)
+
+    assert final_state.status == "completed"
+    assert captured["model_path"] == str(checkpoint)
+    assert captured["train_kwargs"]["resume"] is True
+    assert captured["train_kwargs"]["workers"] == 0
+
+
+def test_runner_finalizes_completed_default_training_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A normal completed run must create a Candidate without requiring a UI retry."""
+    from trafficvision.training import candidate
+
+    run_dir = tmp_path / "run_finalize"
+    run_dir.mkdir()
+    data_yaml = tmp_path / "data.yaml"
+    data_yaml.write_text("names:\n  0: Stop\n", encoding="utf-8")
+    captured: dict[str, Any] = {}
+
+    class FakeYOLO:
+        trainer = None
+
+        def __init__(self, model_path: str) -> None:
+            captured["model_path"] = model_path
+
+        def add_callback(self, event: str, callback: Any) -> None:
+            captured["callback_event"] = event
+
+        def train(self, **kwargs: Any) -> None:
+            weights = Path(kwargs["project"]) / kwargs["name"] / "weights"
+            weights.mkdir(parents=True)
+            (weights / "best.pt").write_bytes(b"best")
+            (weights / "last.pt").write_bytes(b"last")
+
+    def fake_finalize(**kwargs: Any) -> Path:
+        captured["finalize_kwargs"] = kwargs
+        candidate_dir = run_dir / "candidate"
+        candidate_dir.mkdir()
+        (candidate_dir / "manifest.json").write_text("{}", encoding="utf-8")
+        return candidate_dir
+
+    monkeypatch.setitem(sys.modules, "ultralytics", types.SimpleNamespace(YOLO=FakeYOLO))
+    monkeypatch.setattr(candidate, "finalize_checkpoint", fake_finalize)
+    config = TrainingConfig(
+        run_id="run_finalize",
+        data_yaml=data_yaml,
+        epochs=1,
+        batch=1,
+        device="cpu",
+        imgsz=640,
+    )
+    config_file = run_dir / "run_config.json"
+    config_file.write_text(config.model_dump_json(), encoding="utf-8")
+
+    final_state = run_training_subprocess(config_file)
+
+    assert final_state.status == "completed"
+    assert (run_dir / "candidate" / "manifest.json").is_file()
+    assert captured["finalize_kwargs"]["checkpoint_path"] == run_dir / "weights" / "best.pt"
+    assert captured["finalize_kwargs"]["device"] == "cpu"

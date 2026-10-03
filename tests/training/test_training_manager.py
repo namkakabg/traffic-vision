@@ -196,3 +196,47 @@ def test_manager_init_with_app_paths(tmp_path: Path) -> None:
     manager = TrainingManager(paths=paths)
     assert manager.runs_dir == paths.runs
     assert manager.working_dir == tmp_path.resolve()
+
+
+def test_resume_training_relaunches_failed_run_from_last_checkpoint_with_safe_workers(
+    tmp_path: Path,
+) -> None:
+    """Resume keeps the original run progress but lowers DataLoader concurrency."""
+    runs_dir = tmp_path / "runs"
+    manager = TrainingManager(
+        runs_dir=runs_dir,
+        runner_cmd=[sys.executable, "-c", "import time; time.sleep(0.1)"],
+    )
+    run_id = "run_resume"
+    run_dir = runs_dir / run_id
+    checkpoint = run_dir / "weights" / "last.pt"
+    checkpoint.parent.mkdir(parents=True)
+    checkpoint.write_bytes(b"checkpoint")
+    (run_dir / "run_config.json").write_text(
+        TrainingConfig(
+            run_id=run_id,
+            data_yaml=tmp_path / "data.yaml",
+            epochs=10,
+            batch=2,
+            workers=6,
+        ).model_dump_json(),
+        encoding="utf-8",
+    )
+    TrainingState(
+        run_id=run_id,
+        status="failed",
+        current_epoch=4,
+        total_epochs=10,
+        checkpoint_paths={"last": str(checkpoint)},
+    ).to_file(run_dir / "state.json")
+
+    resumed = manager.resume_training(run_id)
+
+    saved_config = TrainingConfig.model_validate_json(
+        (run_dir / "run_config.json").read_text(encoding="utf-8")
+    )
+    assert resumed.status == "running"
+    assert resumed.current_epoch == 4
+    assert resumed.pid is not None
+    assert saved_config.resume_checkpoint == checkpoint
+    assert saved_config.workers == 0
