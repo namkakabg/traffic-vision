@@ -50,3 +50,5 @@ worktrees/
 # OS files
 .DS_Store
 Thumbs.db
+*.ses
+:memory:.ses
