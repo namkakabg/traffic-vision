@@ -40,6 +40,7 @@ htmlcov/
 /artifacts/outputs/
 /artifacts/snapshots/
 /artifacts/staging/
+/artifacts/eda/
 
 # Superpowers and tool scratch
 .superpowers/
