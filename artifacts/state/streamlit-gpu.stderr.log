@@ -1,0 +1,28 @@
+2026-09-30 00:27:01.170 
+'server.enableCORS=false' tells Streamlit not to limit cross-origin access.
+Streamlit sends the header 'Access-Control-Allow-Origin: *', except on the file
+upload routes, which stay pinned to the app address and still require a valid
+XSRF token.
+Streamlit also accepts a WebSocket connection from any origin.
+Streamlit does not set 'server.enableCORS' to 'true' for you.
+'server.enableXsrfProtection=true' does not stop a cross-origin WebSocket
+connection, because Streamlit does not need a valid XSRF token to open one.
+
+To limit cross-origin access, do these steps:
+  1. Set 'server.enableCORS=true'.
+  2. Put the origins that you trust in 'server.corsAllowedOrigins'.
+
+'server.allowedHosts' can also limit the hostnames that Streamlit accepts on a
+WebSocket connection.
+
+2026-09-30 00:27:02.471 Uvicorn server started on :::8501
+2026-09-30 00:28:02.340 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
+2026-09-30 00:28:46.678 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.

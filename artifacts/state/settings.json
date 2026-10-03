@@ -1,0 +1,6 @@
+{
+  "confidence": 0.25,
+  "iou": 0.7,
+  "max_image_bytes": 20971520,
+  "max_video_bytes": 524288000
+}

@@ -40,10 +40,6 @@ htmlcov/
 /artifacts/outputs/
 /artifacts/snapshots/
 /artifacts/staging/
-/data/
-/reports/
-*.pt
-*.onnx
 
 # Superpowers and tool scratch
 .superpowers/

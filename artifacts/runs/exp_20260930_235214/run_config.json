@@ -1,0 +1,14 @@
+{
+  "run_id": "exp_20260930_235214",
+  "data_yaml": "E:\\PTIT\\Project\\traffic-vision\\traffic-vision\\artifacts\\snapshots\\snapshot_20260930_165016\\data.yaml",
+  "base_model": "yolo11m.pt",
+  "epochs": 50,
+  "batch": 3,
+  "workers": 0,
+  "imgsz": 640,
+  "patience": 10,
+  "amp": true,
+  "device": "0",
+  "seed": 42,
+  "resume_checkpoint": null
+}

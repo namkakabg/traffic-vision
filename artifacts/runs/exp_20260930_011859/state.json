@@ -1,0 +1,20 @@
+{
+  "run_id": "exp_20260930_011859",
+  "status": "completed",
+  "current_epoch": 51,
+  "total_epochs": 50,
+  "best_map50": 0.92585,
+  "metrics": {
+    "metrics/precision(B)": 0.87946,
+    "metrics/recall(B)": 0.88833,
+    "metrics/mAP50(B)": 0.92567,
+    "metrics/mAP50-95(B)": 0.77126
+  },
+  "elapsed_s": 31501.37,
+  "error_message": null,
+  "pid": 13476,
+  "checkpoint_paths": {
+    "best": "E:\\PTIT\\Project\\traffic-vision\\traffic-vision\\artifacts\\runs\\exp_20260930_011859\\weights\\best.pt",
+    "last": "E:\\PTIT\\Project\\traffic-vision\\traffic-vision\\artifacts\\runs\\exp_20260930_011859\\weights\\last.pt"
+  }
+}
