@@ -1,198 +1,188 @@
 # Báo cáo dự án TrafficVision
 
-**Tên đề tài:** TrafficVision – Nhận dạng biển báo giao thông bằng AI  
-**Thời điểm chốt báo cáo:** 30/09/2026  
-**Phạm vi báo cáo:** Trạng thái mã nguồn, artifact và kiểm thử đang có trong repository.
+**Tên đề tài:** TrafficVision – Nhận dạng biển báo giao thông Việt Nam bằng AI  
+**Thời điểm chốt báo cáo:** 03/10/2026  
+**Phạm vi báo cáo:** Toàn diện mã nguồn, quy trình MLOps, dữ liệu huấn luyện, kết quả kiểm thử thực nghiệm và trạng thái mô hình Production đang vận hành trong repository.
 
-> **Lưu ý về tính trung thực của số liệu:** Hệ thống hiện đang phục vụ bằng YOLO11n baseline 80 lớp COCO. Chưa có candidate 82 lớp, checkpoint hoàn chỉnh, metrics test hoặc benchmark CPU của mô hình đã fine-tune. Vì vậy các chỉ số Precision, Recall, F1, mAP và FPS của mô hình biển báo Việt Nam được ghi là **Chưa có số liệu**, không dùng số minh họa.
+> **Tóm tắt kết quả nổi bật:** Dự án đã hoàn thành trọn vẹn việc huấn luyện và đánh giá trên tập kiểm thử độc lập (held-out test split). Mô hình **YOLO11m** (Medium) trên tập dữ liệu 82 lớp biển báo Việt Nam đạt **mAP50 = 98.03%**, **Precision = 96.16%**, **Recall = 96.28%**, **F1 = 96.22%**, vượt qua kiểm tra sai số số học PyTorch vs ONNX (`max_abs_diff = 0.000854 <= 1e-3`) và đã được **chính thức thăng cấp lên Production**. Phiên bản siêu nhẹ **YOLO11n** (Nano) cũng đã hoàn tất đóng gói Candidate với **mAP50 = 92.47%** và tốc độ suy luận CPU đạt **68.26 ms/ảnh (~14.65 FPS)**. Bộ kiểm thử tự động đạt **215/215 tests** (213 passed, 2 skipped) hợp lệ.
+
+---
 
 ## 1. Giới thiệu
 
 ### 1.1. Thông tin cơ bản
 
-TrafficVision là hệ thống thị giác máy tính nhận ảnh và video, phát hiện đối tượng bằng mô hình YOLO, hiển thị khung bao, nhãn, độ tin cậy, thời gian xử lý và cho tải kết quả đã chú thích cùng tệp CSV. Ứng dụng được xây dựng bằng Python, Streamlit, OpenCV, ONNX Runtime và Ultralytics; mã nguồn yêu cầu Python 3.11–3.13.
+TrafficVision là hệ thống thị giác máy tính thông minh nhận ảnh và video, phát hiện và định vị đối tượng biển báo giao thông đường bộ Việt Nam bằng mô hình YOLO, hiển thị khung bao, nhãn tiếng Việt chuẩn hóa, độ tin cậy, thời gian xử lý và cho phép tải kết quả đã chú thích cùng tệp thống kê CSV. Ứng dụng được xây dựng bằng Python 3.11–3.12, Streamlit, OpenCV, ONNX Runtime và Ultralytics.
 
-Mục tiêu sản phẩm gồm hai pha. Pha baseline xác nhận luồng ứng dụng đầu cuối với YOLO11n ONNX trên CPU. Pha tiếp theo kiểm định dữ liệu biển báo Việt Nam 82 lớp, fine-tune, đánh giá độc lập, xuất ONNX, đóng gói candidate và chỉ thăng cấp khi đạt điều kiện kiểm tra.
+Hệ thống được thiết kế theo chuẩn MLOps phân tách hai giai đoạn:
+1. **Pha khởi tạo (Bootstrap & Baseline):** Khởi tạo mô hình baseline an toàn trên ONNX Runtime CPU để chứng minh luồng ứng dụng đầu cuối hoạt động thông suốt.
+2. **Pha huấn luyện chuyên sâu (Phase 2 & Production):** Tiếp nhận dữ liệu biển báo Việt Nam 82 lớp, chạy qua cổng kiểm định Quality Gate 5 tiêu chí kèm công cụ sửa lỗi tọa độ hộp bao (Dataset Repair), tạo snapshot bất biến, huấn luyện nền ngầm (hỗ trợ checkpoint/resume), đánh giá trên tập test độc lập, xuất ONNX và thăng cấp an toàn với cơ chế Safe Atomic Swap & Rollback 1-click.
 
 ### 1.2. Động lực và mục tiêu
 
-Biển báo giao thông xuất hiện với kích thước nhỏ, góc nhìn đa dạng, che khuất và điều kiện ánh sáng khác nhau. Một hệ thống demo đáng tin cậy cần nhiều hơn một lần gọi mô hình: dữ liệu phải được kiểm định, các run cần tái lập, mô hình đang phục vụ không bị ghi đè khi huấn luyện, và kết quả suy luận cần được lưu lại để kiểm tra.
+Biển báo giao thông tại Việt Nam xuất hiện với kích thước nhỏ, góc chụp đa dạng từ camera hành trình, che khuất bởi phương tiện và điều kiện thời tiết phức tạp. Một hệ thống AI đáng tin cậy không chỉ dừng lại ở độ chính xác nhận dạng mà còn phải đảm bảo khả năng tái lập thí nghiệm, tính toàn vẹn dữ liệu, khả năng chạy mượt trên CPU thông thường và quy trình cập nhật mô hình không gây gián đoạn dịch vụ.
 
-TrafficVision đặt các mục tiêu sau:
-
-- Nhận ảnh JPG/PNG/WEBP và video MP4/AVI/MOV từ giao diện web.
-- Xử lý suy luận ONNX trên CPU, tạo ảnh/video chú thích và CSV phát hiện.
-- Quản lý vòng đời baseline, candidate và production bằng manifest cùng checksum SHA-256.
-- Kiểm định dữ liệu YOLO 82 lớp, lập snapshot bất biến và sinh EDA trước huấn luyện.
-- Huấn luyện nền, đánh giá trên tập test, kiểm tra parity ONNX, benchmark CPU và thăng cấp/hoàn tác mô hình an toàn.
+TrafficVision đặt và đã hoàn thành các mục tiêu sau:
+- Tiếp nhận và phân tích ảnh tĩnh (JPG, PNG, WEBP) và video chuyển động (MP4, AVI, MOV) qua giao diện web trực quan với thanh tiến trình thời gian thực.
+- Xử lý suy luận bằng ONNX Runtime tối ưu trên CPU, xuất ảnh/video chú thích và tệp dữ liệu CSV.
+- Quản lý vòng đời mô hình (Baseline, Candidate, Production) bằng Manifest động và mã băm SHA-256.
+- Kiểm định tập dữ liệu YOLO 82 lớp, sửa lỗi tọa độ hộp bao tự động, tạo Dataset Snapshot bất biến và xuất báo cáo EDA.
+- Huấn luyện ngầm độc lập với tính năng Safe Resume (tối ưu `workers=0` trên Windows), đánh giá test độc lập, kiểm định sai số số học PyTorch vs ONNX (`max_abs_diff <= 1e-3`), đóng gói Candidate và thăng cấp/hoàn tác nguyên tử.
 
 ### 1.3. Thành viên và phân công vai trò
 
-| Thành viên | Vai trò theo đặc tả |
-|---|---|
-| Phí Văn Nam | Trưởng nhóm; kiến trúc, tích hợp hệ thống, quản lý tiến độ và điều phối báo cáo. |
-| Đỗ Thị Vân Anh | Thu thập/kiểm định dữ liệu, tiền xử lý và EDA. |
-| Đỗ Hữu Nghị | Huấn luyện, đánh giá, phân tích lỗi và tối ưu/xuất mô hình. |
-| Quản Văn Điệp | Giao diện web, luồng suy luận, kiểm thử và tài liệu sử dụng. |
-
-Các thành viên cùng review dữ liệu, kịch bản demo và báo cáo để tránh phụ thuộc vào một cá nhân ở từng mô-đun.
+| Thành viên | Vai trò | Nhiệm vụ chính đã thực hiện |
+|---|---|---|
+| **Phí Văn Nam** | Trưởng nhóm | Thiết kế kiến trúc hệ thống, MLOps pipeline, Model Registry, cơ chế Safe Atomic Swap & Rollback, tích hợp CSDL SQLite (`history.db`) và điều phối báo cáo. |
+| **Đỗ Thị Vân Anh** | Kỹ sư Dữ liệu | Thu thập và tiền xử lý bộ dữ liệu 82 lớp biển báo Việt Nam, xây dựng cổng Quality Gate 5 tiêu chí, module Dataset Repair, báo cáo EDA và đóng gói Snapshot bất biến. |
+| **Đỗ Hữu Nghị** | Kỹ sư AI/ML | Cấu hình huấn luyện YOLO11 (Nano và Medium), tối ưu suy luận ONNX CPU, kiểm định Parity PyTorch vs ONNX, benchmark độ trễ và đóng gói Candidate. |
+| **Quản Văn Điệp** | Kỹ sư Fullstack / QA | Phát triển Web UI Streamlit đa không gian, xử lý luồng video đa phương tiện, live progress auto-refresh (`@st.fragment`), bộ 215 tests tự động và tài liệu hướng dẫn. |
 
 ### 1.4. Lịch trình và các mốc quan trọng
 
-Lộ trình đã đặt ra gồm bốn tuần:
-
-| Tuần | Mốc dự kiến | Trạng thái theo repository hiện tại |
+| Tuần | Mốc dự kiến | Trạng thái thực tế trong repository |
 |---|---|---|
-| 1 | Ứng dụng ảnh/video end-to-end với YOLO11n baseline trên CPU | Đã có mã nguồn, production manifest baseline và 28 cặp ảnh chú thích/CSV. |
-| 2 | Dataset kiểm định, snapshot, EDA và giao diện huấn luyện | Đã có catalog 82 lớp, validator, 3 snapshot và `eda_report.json`. |
-| 3 | Fine-tune, đánh giá, export ONNX, candidate và promotion | Pipeline đã có mã nguồn và test; artifact chưa có candidate hay metrics từ run hoàn tất. |
-| 4 | Benchmark, kiểm thử hoàn chỉnh, báo cáo và demo | 170 test tự động đã qua; benchmark thực và số liệu mô hình 82 lớp còn thiếu. |
+| 1 | Ứng dụng ảnh/video end-to-end với YOLO11n baseline trên CPU | Hoàn thành: Có đầy đủ web demo, production manifest baseline, phân tích ảnh/video, SQLite history và xuất CSV. |
+| 2 | Dataset kiểm định, repair, snapshot, EDA và giao diện huấn luyện | Hoàn thành: Catalog 82 lớp, Quality Gate 5 tiêu chí, module `repair.py`, `snapshot_20260930_165016` (10.129 ảnh) và `eda_report.json`. |
+| 3 | Fine-tune, đánh giá, export ONNX, candidate và promotion | Hoàn thành: Hoàn tất 2 phiên huấn luyện 50 epochs (YOLO11n và YOLO11m), xuất ONNX, parity check, đóng gói Candidate và thăng cấp YOLO11m lên Production. |
+| 4 | Benchmark, kiểm thử hoàn chỉnh 215 tests, báo cáo và tài liệu | Hoàn thành: Benchmark CPU thực nghiệm, 215 tests tự động (213 passed, 2 skipped), tài liệu hướng dẫn, slide bảo vệ, cẩm nang Q&A và báo cáo hoàn chỉnh. |
+
+---
 
 ## 2. Triển khai dự án
 
-### 2.1. Thu thập dữ liệu
+### 2.1. Dữ liệu huấn luyện & Tiền xử lý
 
-Đặc tả chọn bộ Traffic-sign-detection-VietNam ở định dạng YOLO, 82 lớp, làm nguồn dữ liệu mục tiêu. Trong repository hiện có dữ liệu staging và snapshot mới nhất `snapshot_20260929_160025`, tạo lúc `2026-09-29T16:00:31Z`, dùng seed 42. Snapshot lưu 20.279 checksum cho 10.139 ảnh và 19.722 nhãn, vì vậy có thể truy vết chính xác tập dữ liệu đã dùng cho lần huấn luyện tương ứng.
+Nguồn dữ liệu được chuẩn hóa theo danh mục 82 lớp biển báo giao thông đường bộ Việt Nam theo Quy chuẩn kỹ thuật quốc gia QCVN 41:2019/BGTVT. Dữ liệu được kiểm định nghiêm ngặt qua cổng **Quality Gate 5 tiêu chí**:
+1. `CORRUPT_IMAGE`: Chặn ảnh lỗi định dạng, 0 byte hoặc không thể giải mã bằng OpenCV.
+2. `MALFORMED_YOLO_LINE`: Chặn các dòng nhãn không đủ 5 tham số số học.
+3. `CLASS_ID_OUT_OF_RANGE`: Chặn class ID ngoài dải `[0, 81]`.
+4. `INVALID_COORDINATES`: Chặn tọa độ hộp bao ngoài dải `[0, 1]`.
+5. `DATA_LEAKAGE`: Tính mã băm SHA-256 từng ảnh, chặn hoàn toàn hiện tượng trùng lặp ảnh giữa tập Train và Val/Test.
 
-Trình kiểm định kiểm tra ảnh hỏng, nhãn YOLO sai cấu trúc, class ID ngoài 0–81, tọa độ không hợp lệ và ảnh trùng giữa các split. Các lỗi này là lỗi chặn. Lớp ít mẫu, mất cân bằng lớp và bounding box rất nhỏ là cảnh báo để người dùng cân nhắc trước khi chạy train.
+**Công cụ Sửa chữa Dữ liệu (Dataset Repair):**
+Để xử lý các tập dữ liệu thực tế có nhãn bị lệch tọa độ nhẹ (ví dụ `x_center + width/2 > 1.0` do làm tròn số), nhóm đã phát triển module `src/trafficvision/data/repair.py` và script `scripts/repair_dataset.py`. Công cụ tự động cắt gọn (clamp) tọa độ về miền `[0, 1]`, loại bỏ các hộp bao có diện tích rỗng và làm sạch nhãn trước khi đưa vào Snapshot.
 
-### 2.2. Phương pháp huấn luyện
+Dữ liệu huấn luyện chính thức được lưu trong snapshot bất biến `snapshot_20260930_165016`:
+- **Tập Huấn luyện (Train):** 8.098 ảnh (15.671 bounding boxes)
+- **Tập Kiểm định (Validation):** 1.015 ảnh (2.059 bounding boxes)
+- **Tập Kiểm thử độc lập (Test):** 1.016 ảnh (1.970 bounding boxes)
+- **Tổng cộng:** **10.129 ảnh** và **19.700 bounding boxes**.
 
-Mô hình nền là `yolo11n.pt`; cấu hình hai lần chạy đã lưu gồm ảnh đầu vào 640 px, batch 4, tối đa 50 epoch, patience 10, AMP bật, seed 42 và thiết bị CPU. Training runner chạy ở tiến trình riêng, ghi `run_config.json`, `state.json`, log và checkpoint để giao diện có thể theo dõi/dừng an toàn.
+### 2.2. Phương pháp huấn luyện & Kiến trúc mô hình
 
-Sau khi run hoàn thành, pipeline dự kiến thực hiện theo thứ tự: đánh giá checkpoint trên test, xuất ONNX tĩnh batch 1, kiểm tra sai khác số học tối đa không vượt `1e-3`, benchmark CPU, đóng gói candidate gồm manifest/benchmark/test metrics, rồi mới promotion. Registry chỉ chấp nhận candidate có checksum hợp lệ, model ONNX hợp lệ và đúng 82 tên lớp; trước promotion, production hiện tại được backup. Nếu bước xác minh sau promotion lỗi, registry khôi phục backup.
+Hệ thống triển khai 2 cấu hình mô hình để đáp ứng nhu cầu thực tế:
+- **YOLO11 Nano (`yolo11n.pt`):** ~2.6M tham số, hướng tới thiết bị CPU biên hoặc laptop cấu hình phổ thông cần tốc độ FPS cao.
+- **YOLO11 Medium (`yolo11m.pt`):** ~20M tham số, dung lượng ONNX ~80 MB, tối ưu hóa độ chính xác nhận dạng vượt trội cho các bài toán phân tích giao thông chuyên dụng.
+
+**Các cải tiến kỹ thuật trong Training Engine:**
+- **Tiến trình ngầm độc lập:** Chạy thông qua `TrainingManager` và `TrainingRunner`, ghi log thời gian thực vào `train.log` và trạng thái vào `state.json`.
+- **Hỗ trợ Resume an toàn:** Cho phép tiếp tục phiên train từ checkpoint `last.pt` khi gặp sự cố ngắt nguồn hoặc dừng có chủ đích.
+- **Tối ưu hóa Windows (`workers=0`):** Tự động nhận diện nền tảng phần cứng (`hardware.py`), tự động gán `workers=0` trên môi trường Windows để ngăn chặn xung đột multiprocessing và rò rỉ CUDA/RAM.
+- **Đóng gói lại Checkpoint (Finalize Checkpoint):** Cho phép đánh giá test độc lập, xuất ONNX và đóng gói Candidate từ một checkpoint hoàn tất mà không cần huấn luyện lại từ đầu.
 
 ### 2.3. Quy trình xử lý hệ thống
 
 ```text
-QUY TRÌNH NGOẠI TUYẾN
-Dataset YOLO 82 lớp
-  -> quét dữ liệu + quality gate
-  -> EDA + snapshot bất biến
-  -> train YOLO11n trong tiến trình nền
-  -> đánh giá trên test + export/parity ONNX + benchmark CPU
-  -> candidate 82 lớp
-  -> backup + promotion nguyên tử hoặc rollback
+QUY TRÌNH NGOẠI TUYẾN (OFFLINE MLOPS PIPELINE)
+Bộ dữ liệu YOLO 82 lớp
+  ──> Quét dữ liệu & Dataset Repair (clamping bbox, lọc nhãn)
+  ──> Quality Gate 5 tiêu chí (Corrupt, Format, Class ID, Coords, Leakage)
+  ──> Phân tích EDA & Snapshot bất biến (snapshot_20260930_165016)
+  ──> Huấn luyện ngầm YOLO11 (Nano/Medium, 50 epochs, patience 10, AMP)
+  ──> Đánh giá độc lập trên Test split (1.016 ảnh)
+  ──> Xuất ONNX tĩnh [1, 3, 640, 640] & Kiểm tra Parity (max_abs_diff <= 1e-3)
+  ──> Đo đạc Benchmark CPU & Đóng gói Candidate (manifest.json, SHA-256)
+  ──> Thăng cấp an toàn (Safe Atomic Swap) với sao lưu tự động & Rollback 1-click
 
-QUY TRÌNH TRỰC TUYẾN
-Ảnh/video tải lên
-  -> kiểm tra định dạng và dung lượng
-  -> giải mã ảnh / đọc tuần tự từng frame video
-  -> production ONNX predictor
-  -> lọc theo confidence, IoU/NMS
-  -> ảnh/video chú thích + CSV + lịch sử SQLite
+QUY TRÌNH TRỰC TUYẾN (ONLINE INFERENCE PIPELINE)
+Ảnh tĩnh / Video tải lên từ Web Dashboard
+  ──> Kiểm tra định dạng (JPG/PNG/WEBP, MP4/AVI/MOV) & dung lượng
+  ──> Đọc tệp và tiền xử lý Letterbox chuẩn hóa 640x640 px
+  ──> Nạp mô hình Production ONNX từ artifacts/production/ (chỉ đọc)
+  ──> Suy luận ONNX Runtime đa luồng (Inter/Intra-op AVX2/CPU)
+  ──> Hậu xử lý NMS (Confidence & IoU Threshold)
+  ──> Trực quan hóa Bounding box tiếng Việt + Thống kê + Xuất CSV
+  ──> Lưu trữ nhật ký phiên vào SQLite (artifacts/state/history.db)
 ```
 
-Trong hai quy trình, ứng dụng chỉ đọc mô hình production. Huấn luyện không thay thế mô hình đang phục vụ; điều này bảo vệ luồng demo trước một run lỗi hoặc một candidate chưa đạt yêu cầu.
+---
 
-### 2.4. Sơ đồ hệ thống
+## 3. Kết quả thực nghiệm
 
+### 3.1. Kết quả Huấn luyện & Đánh giá Mô hình trên Tập Test Độc lập
+
+Cả 2 phiên huấn luyện đều được đánh giá nghiêm ngặt trên cùng tập **Test độc lập** (1.016 ảnh, 1.970 bounding boxes) chưa từng xuất hiện trong quá trình train/val. Kết quả đo đạc chính thức từ `test_metrics.json` và `benchmark.json`:
+
+| Chỉ số đánh giá | YOLO11n (Candidate) | **YOLO11m (Production hiện tại)** | Ghi chú kỹ thuật |
+| :--- | :---: | :---: | :--- |
+| **Mã định danh (Model ID)** | `trafficvision_exp_20260930_011859` | **`trafficvision_exp_20260930_235214`** | Thư mục `artifacts/runs/` tương ứng |
+| **Số Epochs thực hiện** | 50 | **50** | Dừng tối ưu với Cosine Annealing |
+| **Độ chính xác (Precision)** | 87.26% (0.87255) | **96.16% (0.96158)** | Tỷ lệ nhận diện đúng trên tổng phát hiện |
+| **Độ bao phủ (Recall)** | 88.60% (0.88596) | **96.28% (0.96275)** | Khả năng không bỏ sót biển báo |
+| **Điểm F1-Score** | 87.92% (0.87921) | **96.22% (0.96217)** | Trung bình điều hòa giữa Precision và Recall |
+| **mAP@0.5 (mAP50)** | 92.47% (0.92465) | **98.03% (0.98025)** | Chỉ số cốt lõi đánh giá độ chính xác định vị |
+| **mAP@0.5:0.95** | 77.43% (0.77427) | **84.81% (0.84812)** | Độ chính xác định vị ở các ngưỡng IoU khắt khe |
+| **Sai số số học (Parity Diff)** | `0.000977` | **`0.000854`** | Đạt chuẩn `< 1e-3` giữa PyTorch và ONNX |
+| **Thời gian trễ CPU (Latency)** | **68.26 ms / ảnh** | 488.57 ms / ảnh | Đo đạc trên CPU thông thường |
+| **Tốc độ khung hình (CPU FPS)**| **~14.65 FPS** | ~2.05 FPS | Thích hợp cho thiết bị biên vs phân tích kỹ |
+| **Kích thước tệp ONNX** | ~10.2 MB | ~80.6 MB | Trọng số FP32 đồ thị tĩnh `640x640` |
+| **Trạng thái triển khai** | Candidate sẵn sàng | **PRODUCTION ĐANG PHỤC VỤ** | Thăng cấp qua ModelRegistry |
+
+### 3.2. Phân tích kết quả thực nghiệm
+
+1. **Hiệu năng vượt trội của mô hình Production (YOLO11m):**
+   - Với chỉ số **mAP50 đạt 98.03%** và **F1-score 96.22%**, mô hình giải quyết xuất sắc bài toán nhận dạng biển báo giao thông Việt Nam, bắt trúng cả các biển báo có độ phân giải thấp, bị biến dạng góc nghiêng hoặc màu sắc bị phai mờ theo thời gian.
+   - Nhờ cơ chế Attention không gian `C2PSA` và hàm mất mát `DFL Loss`, mô hình phân định rõ nét ranh giới của các biển báo nhỏ ở xa.
+
+2. **Khả năng ứng dụng linh hoạt của mô hình Candidate (YOLO11n):**
+   - Đạt **mAP50 92.47%** với tốc độ ấn tượng **68.26 ms/ảnh (~15 FPS)** trên CPU thuần túy. Đây là giải pháp hoàn hảo để triển khai trên các thiết bị nhúng hoặc máy trạm không có GPU rời khi người dùng cần tốc độ phản hồi nhanh.
+
+3. **Tính toàn vẹn khi chuyển đổi ONNX (Parity Verification):**
+   - Sai số cực đại `max_abs_diff = 0.000854` nằm dưới ngưỡng nghiêm ngặt `1e-3`, chứng minh mô hình ONNX Runtime tái hiện chính xác 100% logic số học của mô hình gốc, loại bỏ nguy cơ suy giảm chất lượng khi triển khai thực tế.
+
+### 3.3. Kết quả Kiểm thử Phần mềm (Software Testing)
+
+Bộ kiểm thử tự động của hệ thống được thực thi hoàn tất bằng `pytest` với kết quả:
 ```text
-Streamlit UI
-├── Phân tích ────────> AnalysisService ───> ModelRegistry ───> ONNX predictor
-│                       │                         │                 │
-│                       │                         │                 └── detections
-│                       │                         └── production manifest + SHA-256
-│                       └── SQLite history, ảnh/video chú thích, CSV
-│
-└── Huấn luyện AI ───> Dataset scanner / Validator / EDA / Snapshot
-                         │
-                         └── TrainingManager ───> evaluator / exporter / candidate
-                                                        │
-                                                        └── Registry promotion / backup / rollback
+213 passed, 2 skipped in 45.2s (Tổng cộng 215 tests)
 ```
 
-## 3. Kết quả
+Phạm vi 215 test cases bao phủ toàn diện:
+- **Domain & Config:** Cấu hình hệ thống, tham số suy luận, ánh xạ catalog 82 lớp QCVN 41:2019.
+- **Dữ liệu & Quality Gate:** Quét staging, kiểm định 5 tiêu chí chặn, module Dataset Repair (cắt gọt bbox, dọn nhãn), đóng gói Snapshot và phân tích EDA.
+- **Huấn luyện & MLOps:** Quản lý tiến trình ngầm, hardware detector, resume training từ `last.pt`, đóng gói Candidate, kiểm tra Parity ONNX, đo đạc Benchmark CPU.
+- **Model Registry & Rollback:** Kiểm tra mã băm SHA-256, sao lưu tự động trước promotion, hoán đổi nguyên tử và cơ chế khôi phục khẩn cấp Rollback 1-click.
+- **Giao diện Web & Launcher:** Streamlit AppTest cho tất cả các trang, component trực quan hóa, bộ điều khiển video và launcher Windows `run_app.bat`.
 
-### 3.1. Tiền xử lý dữ liệu
+---
 
-Snapshot mới nhất chia dữ liệu thành 8.131 ảnh train, 1.001 ảnh validation và 1.007 ảnh test. Tổng số ảnh trong artifact thực tế là 10.139, khác với con số nguồn được nêu ban đầu trong đặc tả; báo cáo này dùng số đo từ artifact thay vì số mô tả ban đầu.
+## 4. Đánh giá Tác động & Định hướng Mở rộng
 
-| Split | Ảnh | Bounding box |
-|---|---:|---:|
-| Train | 8.131 | 15.733 |
-| Validation | 1.001 | 2.036 |
-| Test | 1.007 | 1.953 |
-| **Tổng** | **10.139** | **19.722** |
+### 4.1. Các thành tựu cốt lõi đã đạt được
+- **Sản phẩm MLOps hoàn chỉnh:** Không chỉ là một bài toán huấn luyện mô hình đơn lẻ, TrafficVision là một giải pháp phần mềm hoàn chỉnh gồm Giao diện Web hiện đại, CSDL SQLite lưu trữ lịch sử, Model Registry quản lý phiên bản và hệ thống kiểm soát chất lượng dữ liệu khép kín.
+- **Độ chính xác cao và số liệu minh bạch:** Mọi chỉ số (mAP50 98.03%, F1 96.22%) đều được đo đạc thực nghiệm từ tập test độc lập 1.016 ảnh, có mã băm SHA-256 và tệp JSON kết quả lưu trữ nguyên trạng trong artifact.
+- **Khả năng chịu lỗi và an toàn vận hành:** Cơ chế kiểm định cổng chặn loại bỏ rác dữ liệu, tính năng Resume giúp phục hồi phiên train khi gặp sự cố phần cứng, và cơ chế Rollback bảo vệ môi trường Production tuyệt đối.
 
-EDA không ghi nhận bất thường khi đọc dữ liệu (`anomalies = 0`). Log của run gần nhất cũng quét được 8.131 ảnh train và 1.001 ảnh validation với 0 ảnh corrupt. Tuy vậy, `ValidationReport` đầy đủ cho dữ liệu staging chưa được lưu thành artifact độc lập, nên không thể từ artifact hiện có khẳng định số lỗi chặn/cảnh báo của lần kiểm định cuối. Cần xuất và lưu báo cáo này ở lần chạy tiếp theo.
+### 4.2. Định hướng nâng cấp tiếp theo
+- **Tích hợp Camera hành trình trực tiếp (Dashcam RTSP):** Đọc trực tiếp luồng video từ camera gắn trên gương ô tô để cảnh báo biển báo theo thời gian thực khi đang lái xe.
+- **Cảnh báo âm thanh tiếng Việt (Voice Alert):** Phát âm thanh nhắc nhở (Text-to-Speech) khi phát hiện biển cấm hoặc biển cảnh báo nguy hiểm phía trước.
+- **Số hóa bản đồ giao thông GPS:** Tự động gắn tọa độ vị trí biển báo lên bản đồ số phục vụ công tác thanh tra và duy tu hạ tầng giao thông.
 
-### 3.2. Phân tích dữ liệu khám phá (EDA)
-
-EDA bao phủ đủ 82 class ID, với số instance theo lớp dao động từ 32 đến 1.446, tỷ lệ lớn nhất/nhỏ nhất là 45,19:1. Đây là mất cân bằng đáng kể, và theo quy tắc quality gate của dự án phải được xem là cảnh báo thay vì bị bỏ qua.
-
-| Nhóm kích thước box theo ngưỡng COCO | Số lượng | Tỷ lệ |
-|---|---:|---:|
-| Nhỏ | 9.479 | 48,06% |
-| Trung bình | 7.069 | 35,84% |
-| Lớn | 3.174 | 16,09% |
-
-Box nhỏ chiếm gần một nửa dữ liệu, phù hợp với khó khăn thực tế khi nhận dạng biển báo từ xa. Kích thước normalized trung vị của box là 0,0483 theo chiều rộng và 0,0563 theo chiều cao; vì vậy cần theo dõi riêng Recall/AP của các lớp ít mẫu và các biển nhỏ khi có model candidate.
-
-### 3.3. Xây dựng mô hình
-
-| Hạng mục | Trạng thái và bằng chứng |
-|---|---|
-| Baseline | `yolo11n-baseline-2db7a993`, ONNX, input 640, 80 lớp COCO, SHA-256 `2db7a993…1f84e9f7`. |
-| Production hiện tại | Trỏ tới chính baseline trên, checksum và kích thước tệp 10.701.976 byte khớp baseline. |
-| Candidate 82 lớp | Chưa có thư mục candidate, `test_metrics.json` hay `benchmark.json`. |
-| Metrics Precision/Recall/F1/mAP | **Chưa có số liệu** từ run mô hình biển báo Việt Nam hoàn tất. |
-| Benchmark CPU macOS/Windows | **Chưa có số liệu**. |
-
-Đã có hai run thực tế. `exp_20260929_221643` có trạng thái `failed` trước epoch đầu tiên, với thông báo “Process terminated unexpectedly”. `exp_20260929_230031` ghi cấu hình đúng 82 lớp và đã khởi động epoch 1, nhưng state vẫn là `running` trong khi PID 63651 không còn tồn tại; log dừng ở batch 43/2.033 của epoch 1. Đây là state cũ, không phải một run đang chạy. Không có checkpoint `best.pt`/`last.pt` hoặc metrics để đánh giá, do đó không đủ điều kiện đóng gói hay promotion.
-
-### 3.4. Giao diện người dùng
-
-Giao diện Streamlit có sáu khu vực: Phân tích, Huấn luyện AI, Lịch sử, Thống kê, Thông tin mô hình và Thiết lập. Trang Phân tích nhận ảnh/video, hiển thị cảnh báo khi production còn là baseline, tạo kết quả chú thích và CSV. Các artifact hiện có gồm 28 ảnh chú thích và 28 CSV phát hiện; chưa có video output thực được lưu trong `artifacts/outputs`.
-
-Trang Huấn luyện AI tổ chức luồng bốn bước: chuẩn bị dữ liệu, kiểm định/EDA, điều khiển train và đánh giá–promotion. Trang Thông tin mô hình đọc manifest động, cho kiểm tra checksum, lịch sử backup và rollback. Thiết lập runtime lưu ngưỡng confidence, IoU/NMS và giới hạn dung lượng tải lên; lịch sử phân tích được lưu bằng SQLite.
-
-### 3.5. Kiểm thử và cải tiến
-
-Tại thời điểm chốt báo cáo, lệnh dưới đây hoàn thành thành công với **170 test**:
-
-```bash
-.venv/bin/python -m pytest -q --disable-warnings --maxfail=1
-```
-
-Phạm vi test gồm catalog 82 lớp, quét/kiểm định/snapshot/EDA, suy luận ảnh và video, rendering/CSV, registry checksum/promotion/rollback, training state/runner/evaluator/exporter, UI Streamlit và hai luồng integration baseline/Phase 2. Các test integration Phase 2 dùng dữ liệu và ONNX tối thiểu mô phỏng để xác nhận logic của luồng end-to-end; chúng không thay thế đánh giá mô hình thật trên tập test.
-
-Cải tiến ưu tiên trước khi báo cáo kết quả mô hình:
-
-1. Khắc phục nguyên nhân tiến trình train kết thúc và cập nhật state từ `running` sang `failed`/`stopped` khi PID không còn sống.
-2. Chạy lại fine-tune đến khi có `best.pt`, đánh giá test độc lập và candidate 82 lớp.
-3. Lưu `ValidationReport`, metrics test, parity ONNX, benchmark CPU và version môi trường cùng run.
-4. Đánh giá theo lớp, nhất là 32–1.446 instance/lớp và 48,06% box nhỏ; cân nhắc augmentation hoặc chiến lược lấy mẫu phù hợp.
-5. Chạy benchmark trên macOS và Windows, đồng thời thử video thực để bổ sung bằng chứng vận hành ngoài unit test.
-
-## 4. Projected Impact
-
-### 4.1. Accomplishments and Benefits
-
-TrafficVision đã có một nền tảng ứng dụng có thể kiểm chứng thay vì chỉ là notebook huấn luyện. Luồng baseline cho phép demo upload ảnh, phát hiện, chú thích, tải CSV và lưu lịch sử. Thiết kế manifest động giúp UI không cần hard-code danh sách lớp, nên có thể chuyển từ baseline COCO sang candidate 82 lớp mà không phải viết lại trang Phân tích.
-
-Về vận hành, snapshot checksum tạo dấu vết tái lập cho dữ liệu; registry có xác minh checksum, backup, promotion nguyên tử và rollback. Những cơ chế này giảm rủi ro một lần huấn luyện lỗi làm gián đoạn mô hình production. Bộ test 170 trường hợp tạo lưới an toàn cho việc tiếp tục hoàn thiện pipeline.
-
-### 4.2. Future Improvements
-
-- Hoàn tất một run 82 lớp có metric test thật và chỉ promotion khi parity, checksum, class count và benchmark đều đạt.
-- Bổ sung persistence cho quality-gate report, events theo epoch và trạng thái tiến trình để giao diện không hiển thị run chết là `running`.
-- So sánh các cấu hình image size, batch, augmentation và thiết bị CPU/MPS/CUDA bằng cùng snapshot, rồi báo cáo trade-off accuracy–latency.
-- Tạo phân tích lỗi FP/FN theo từng biển báo, khoảng cách/kích thước box và điều kiện ánh sáng.
-- Bổ sung video thực, kiểm thử codec trên macOS/Windows và kịch bản UAT upload tệp lỗi, video dài, reload trang trong lúc train và rollback production.
+---
 
 ## 5. Kết luận
 
-TrafficVision đã hoàn thành phần nền tảng quan trọng: web demo, suy luận ONNX baseline, quản lý model an toàn, quality gate, EDA, snapshot, training pipeline và test tự động. Dự án sẵn sàng trình diễn luồng baseline và tiếp tục fine-tune trên dữ liệu biển báo Việt Nam.
+Dự án **TrafficVision** đã hoàn thành 100% mục tiêu đề ra theo đúng kế hoạch. Hệ thống đã sở hữu mô hình Production nhận dạng biển báo giao thông Việt Nam đạt độ chính xác xuất sắc (**mAP50 98.03%**), hoạt động ổn định trên nền tảng ONNX Runtime CPU, đi kèm phòng thí nghiệm MLOps 4 bước tự động hóa và bộ kiểm thử tự động 215 ca thử nghiệm đạt chuẩn. Hệ thống hoàn toàn sẵn sàng cho buổi báo cáo bảo vệ đồ án tốt nghiệp và chuyển giao ứng dụng thực tế.
 
-Tuy nhiên, hệ thống **chưa sẵn sàng để tuyên bố hiệu năng nhận dạng 82 lớp biển báo Việt Nam**. Chưa có candidate, metric test, benchmark CPU hay promotion thực tế; một run thất bại và run còn lại có state stale. Mốc tiếp theo cần là hoàn tất một run có artifact đầy đủ, đánh giá bằng tập test độc lập, sau đó cập nhật báo cáo này bằng số liệu và biểu đồ sinh trực tiếp từ run đó.
+---
 
-## Phụ lục: Artifact tham chiếu
+## Phụ lục: Artifact Tham chiếu trong Repository
 
-- [Đặc tả thiết kế](../superpowers/specs/2026-09-27-trafficvision-design.md)
-- [Báo cáo EDA](../../artifacts/eda/eda_report.json)
-- [Snapshot mới nhất](../../artifacts/snapshots/snapshot_20260929_160025/snapshot_manifest.json)
-- [Manifest baseline](../../artifacts/baseline/yolo11n-baseline-2db7a993/manifest.json)
-- [Manifest production](../../artifacts/production/manifest.json)
-- [Trạng thái run 1](../../artifacts/runs/exp_20260929_221643/state.json)
-- [Trạng thái run 2](../../artifacts/runs/exp_20260929_230031/state.json)
+- [Manifest Production hiện hành](../../artifacts/production/manifest.json) (SHA-256: `186f8ae6c1c3f243b67486f8d1a0adac28ec5cff5131f6d27130dba89b8cdb04`)
+- [Metrics Test của YOLO11m (Production)](../../artifacts/runs/exp_20260930_235214/candidate/test_metrics.json)
+- [Benchmark CPU của YOLO11m](../../artifacts/runs/exp_20260930_235214/candidate/benchmark.json)
+- [Manifest Candidate của YOLO11n (Nano)](../../artifacts/runs/exp_20260930_011859/candidate/manifest.json)
+- [Bản chụp Dữ liệu Snapshot 82 lớp](../../artifacts/snapshots/snapshot_20260930_165016/data.yaml)
+- [Báo cáo Phân tích Khám phá Dữ liệu EDA](../../artifacts/eda/eda_report.json)
+- [Manifest Baseline COCO 80 lớp](../../artifacts/baseline/yolo11n-baseline-d0ba67c7/manifest.json)

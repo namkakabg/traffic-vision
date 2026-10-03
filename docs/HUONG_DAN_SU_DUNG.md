@@ -139,8 +139,8 @@ Sau khi khởi chạy thành công, giao diện quản trị Web sẽ tự độ
 Giao diện TrafficVision được phân chia thành **Thanh điều hướng bên trái (Sidebar)** và **Khu vực hiển thị nội dung chính bên phải**.
 
 Thanh Sidebar luôn hiển thị trạng thái thẻ mô hình đang vận hành (Model Card):
-* **Đèn xanh lá (Production):** Mô hình đã được huấn luyện với tập 82 lớp biển báo Việt Nam.
-* **Đèn vàng hổ phách (Baseline):** Mô hình khởi đầu sơ bộ (Chưa fine-tune).
+* **Đèn xanh lá (Production):** Mô hình hiện hành đạt chuẩn 82 lớp biển báo Việt Nam (`trafficvision_exp_20260930_235214`, độ chính xác mAP50 đạt **98.03%**).
+* **Đèn vàng hổ phách (Baseline):** Mô hình khởi đầu sơ bộ 80 lớp COCO (được dùng làm điểm tựa kỹ thuật trước khi thăng cấp).
 
 ---
 
@@ -190,7 +190,7 @@ Thanh Sidebar luôn hiển thị trạng thái thẻ mô hình đang vận hành
 
 ### 4.2. Không gian "Lịch sử" (Tra cứu dữ liệu phiên)
 
-Toàn bộ các lần thực hiện phân tích ảnh hoặc video đều được ghi nhận tự động vào cơ sở dữ liệu SQLite cục bộ (`artifacts/state/trafficvision.db`).
+Toàn bộ các lần thực hiện phân tích ảnh hoặc video đều được ghi nhận tự động vào cơ sở dữ liệu SQLite cục bộ (`artifacts/state/history.db`).
 
 * **Tính năng:**
   * Hiển thị bảng tổng hợp tối đa 100 phiên phân tích gần nhất.
@@ -230,22 +230,27 @@ Khu vực **AI Experiment Lab** cho phép huấn luyện mô hình nhận dạng
   5. `DATA_LEAKAGE`: Phát hiện trùng lặp ảnh giữa tập Train và tập Val/Test thông qua mã băm SHA-256.
 * Nếu dữ liệu vượt qua cổng kiểm định, hệ thống sẽ tạo một **Dataset Snapshot** bất biến lưu tại `artifacts/snapshots/<snapshot_id>/` kèm tệp `data.yaml` hợp thức và xuất báo cáo phân tích khám phá dữ liệu (EDA Report).
 
-#### Bước 3: Huấn luyện nền (Background Training)
+#### Bước 3: Huấn luyện nền (Background Training) & Safe Resume
 * Tùy chỉnh các tham số huấn luyện:
   * **Số Epoch:** Mặc định `50` (hoặc điều chỉnh từ 1 – 300).
   * **Batch Size:** Kích thước mini-batch (2, 4, 8, 16,...).
+  * **Số luồng Worker (DataLoader Workers):** Mặc định `0` (khuyến nghị cho Windows để tối ưu RAM và tránh lỗi đa tiến trình PyTorch).
   * **Độ phân giải ảnh (Image Size):** Mặc định `640` px.
-  * **Kiên nhẫn dừng sớm (Early Stopping Patience):** Dừng nếu mô hình không cải thiện sau $N$ epoch liên tiếp.
-  * **Thiết bị (Device):** Tự động nhận diện `cuda` (nếu có GPU) hoặc `cpu` / `mps` (trên Mac).
-* Bấm nút **Khởi động huấn luyện**.
-* **Ưu điểm vượt trội:** Tiến trình huấn luyện chạy ngầm trong background process độc lập. Người dùng có thể tự do chuyển sang tab khác mà không làm gián đoạn quá trình train. Cửa sổ nhật ký (Realtime Log) cho phép xem quá trình học theo từng epoch và có nút **Dừng an toàn (Abort)** bất cứ khi nào cần.
+  * **Kiên nhẫn dừng sớm (Early Stopping Patience):** Dừng nếu mô hình không cải thiện sau $N$ epoch liên tiếp (mặc định: `10`).
+  * **Thiết bị (Device):** Tự động nhận diện phần cứng (`cuda` nếu có GPU NVIDIA, `mps` trên Mac Silicon, hoặc `cpu`).
+* **Các nút điều khiển:**
+  * 🚀 **Khởi động huấn luyện:** Khởi tạo tiến trình nền mới.
+  * 🔄 **Tiếp tục huấn luyện:** Khi một phiên huấn luyện bị gián đoạn hoặc dừng sớm, nhấn nút này để tiếp tục tự động từ checkpoint `last.pt` với `workers=0` mà không phải chạy lại từ epoch đầu.
+  * ⏹ **Dừng huấn luyện:** Gửi tín hiệu ngắt an toàn (`SIGINT`) lưu trạng thái dở dang vào checkpoint.
+* **Tự động cập nhật tiến độ:** Giao diện sử dụng kỹ thuật phân đoạn `@st.fragment` tự động đọc lại trạng thái và cập nhật thanh tiến trình cùng nhật ký thời gian thực mỗi 3 giây.
 
 #### Bước 4: Đóng gói Ứng viên & Thăng cấp (Candidate & Promotion)
-* Khi hoàn thành phiên train, mô hình được tự động đánh giá:
-  * Đo đạc chỉ số chất lượng: **mAP50**, **Precision**, **Recall**.
-  * Xuất sang định dạng **ONNX** chuẩn hóa cho CPU.
-  * Kiểm tra sai số số học giữa PyTorch và ONNX (`max_abs_diff <= 1e-3`).
+* Khi hoàn thành phiên train, mô hình được tự động đánh giá và đóng gói:
+  * Đo đạc chỉ số chất lượng trên tập Test: **mAP50 = 98.03%**, **Precision = 96.16%**, **Recall = 96.28%**, **F1 = 96.22%** (đạt trên YOLO11m).
+  * Xuất sang định dạng **ONNX** đồ thị tĩnh `[1, 3, 640, 640]` cho CPU.
+  * Kiểm tra sai số số học giữa PyTorch và ONNX (`max_abs_diff <= 1e-3`, thực tế đạt `0.000854`).
   * Đo tốc độ FPS và thời gian trễ trung bình trên CPU.
+* **Tính năng Đánh giá & Xuất Checkpoint (Finalize Checkpoint):** Nếu tìm thấy checkpoint huấn luyện hoàn tất nhưng chưa tạo Candidate, người dùng chỉ cần nhấn nút **Đánh giá & xuất checkpoint** để xuất ONNX và tạo Candidate ngay lập tức mà không phải huấn luyện lại.
 * **Thăng cấp lên Production:** Người dùng kiểm tra thông số của Candidate, sau đó nhấn nút **Thăng cấp lên Production**.
 * **Cơ chế sao lưu an toàn (Safe Atomic Swap):** Trước khi mô hình mới tiếp quản hệ thống, hệ thống sẽ tự động sao lưu toàn bộ mô hình cũ vào thư mục `artifacts/backups/<backup_id>/`.
 
@@ -300,7 +305,13 @@ python scripts/smoke_test.py --image path/to/bien_bao.jpg
 python scripts/smoke_test.py
 ```
 
-### 3. Kiểm định tập dữ liệu & EDA (`scripts/validate_dataset.py`)
+### 3. Sửa lỗi & Chuẩn hóa tập dữ liệu (`scripts/repair_dataset.py`)
+```bash
+# Tự động cắt gọt (clamp) tọa độ bbox vượt [0, 1] và loại bỏ nhãn sai cấu trúc
+python scripts/repair_dataset.py --data-dir artifacts/staging
+```
+
+### 4. Kiểm định tập dữ liệu & EDA (`scripts/validate_dataset.py`)
 ```bash
 python scripts/validate_dataset.py \
   --data-dir artifacts/staging \
@@ -308,7 +319,7 @@ python scripts/validate_dataset.py \
   --create-snapshot
 ```
 
-### 4. Huấn luyện mô hình từ dòng lệnh (`scripts/train.py`)
+### 5. Huấn luyện mô hình từ dòng lệnh (`scripts/train.py`)
 ```bash
 python scripts/train.py \
   --data-yaml artifacts/snapshots/<snapshot_id>/data.yaml \
@@ -318,7 +329,7 @@ python scripts/train.py \
   --device cpu
 ```
 
-### 5. Thăng cấp hoặc Hoàn tác mô hình (`scripts/promote_model.py`)
+### 6. Thăng cấp hoặc Hoàn tác mô hình (`scripts/promote_model.py`)
 ```bash
 # Thăng cấp Candidate lên Production
 python scripts/promote_model.py --candidate-dir artifacts/runs/<run_id>/candidate
@@ -349,7 +360,7 @@ Traffic_Vision/
 │   ├── snapshots/      # Bản chụp dữ liệu bất biến + data.yaml chuẩn hóa
 │   ├── staging/        # Thư mục chứa dữ liệu YOLO mới đưa vào
 │   ├── outputs/        # Lưu trữ ảnh/video đã gắn nhãn và bảng CSV xuất ra
-│   └── state/          # Cơ sở dữ liệu SQLite (trafficvision.db) và tệp settings.json
+│   └── state/          # Cơ sở dữ liệu SQLite (history.db) và tệp settings.json
 ├── configs/            # Tệp cấu hình mặc định của hệ thống
 ├── docs/               # Toàn bộ tài liệu kỹ thuật, báo cáo và hướng dẫn sử dụng
 ├── scripts/            # Các công cụ script dòng lệnh thực thi
@@ -383,7 +394,8 @@ Traffic_Vision/
   * Nếu video có độ phân giải quá cao (4K), hãy cân nhắc nén xuống Full HD (1080p) hoặc HD (720p) trước khi tải lên để tối ưu tốc độ xử lý từng khung hình.
 
 ### Q4: Quá trình huấn luyện bị gián đoạn hoặc muốn dừng lại?
-* Trong tab **Huấn luyện AI** $\rightarrow$ **Bước 3: Huấn luyện nền**, bạn có thể bấm nút **Dừng huấn luyện** bất cứ lúc nào. Tiến trình nền sẽ gửi tín hiệu ngắt an toàn (`SIGINT`) và lưu trữ trạng thái dở dang vào tệp log mà không làm treo hệ điều hành.
+* Trong tab **Huấn luyện AI** $\rightarrow$ **Bước 3: Huấn luyện nền**, bạn có thể bấm nút **Dừng huấn luyện** bất cứ lúc nào. Tiến trình nền sẽ gửi tín hiệu ngắt an toàn (`SIGINT`) và lưu trữ trọng số dở dang vào checkpoint `last.pt`.
+* **Để tiếp tục:** Chỉ cần nhấn nút **🔄 Tiếp tục huấn luyện**, hệ thống sẽ nạp lại `last.pt` và tự động tiếp tục học các epoch còn lại mà không mất dữ liệu đã train trước đó.
 
 ---
 *Chúc bạn có trải nghiệm phân tích thị giác giao thông hiệu quả và chính xác cùng TrafficVision!*

@@ -1245,25 +1245,25 @@ Pyramid kiểm thử TrafficVision
 
 ## Phụ lục A — Mapping Test Case → File pytest
 
-| Module | File test | Số TC |
-|--------|-----------|-------|
-| A | `tests/test_config.py`, `tests/test_domain.py` | 10 |
-| B | `tests/test_registry.py`, `tests/test_bootstrap.py` | 7 |
-| C | `tests/inference/test_ultralytics_predictor.py` | 6 |
-| D | `tests/test_media.py`, `tests/inference/test_image.py`, `tests/test_rendering.py` | 13 |
-| E | `tests/inference/test_video.py` | 6 |
-| F | `tests/test_history.py`, `tests/test_settings.py`, `tests/test_service.py` | 10 |
-| G | `tests/ui/` (4 files) | 15 |
-| H | `tests/data/test_catalog.py`, `tests/data/test_dataset.py` | 6 |
-| I | `tests/data/test_validator.py`, `tests/data/test_snapshot.py` | 15 |
-| J | `tests/data/test_eda.py` | 4 |
-| K | `tests/training/` (config, state, manager) | 9 |
-| L | `tests/training/` (evaluator, exporter, candidate) | 7 |
-| M | `tests/test_promotion_rollback.py` | 13 |
-| N | `tests/ui/test_training_page.py` | 7 |
-| Integration | `tests/integration/` (2 files) | 6 |
-| UAT | Thủ công | 10 |
-| **Tổng** | | **≥ 154** |
+| Module | File test | Nội dung kiểm thử | Số TC |
+|--------|-----------|-------------------|-------|
+| A | `tests/test_config.py`, `tests/test_domain.py` | Cấu hình app, schema, inference params | 10 |
+| B | `tests/test_registry.py`, `tests/test_bootstrap.py` | Registry, SHA-256, baseline bootstrap | 8 |
+| C | `tests/inference/test_ultralytics_predictor.py` | Adapter ONNX Runtime, NMS, output parsing | 6 |
+| D | `tests/test_media.py`, `test_image.py`, `test_rendering.py` | Staging ảnh, letterbox, annotation BBox, CSV | 14 |
+| E | `tests/inference/test_video.py` | Đọc frame tuần tự, callback progress, xuất video | 6 |
+| F | `tests/test_history.py`, `test_settings.py`, `test_service.py` | SQLite history.db, settings JSON, AppServices | 12 |
+| G | `tests/ui/test_analysis_page.py`, `test_secondary_pages.py`, `test_theme.py`, `test_components.py` | Streamlit AppTest, theme CSS, KPI cards, badges | 24 |
+| H | `tests/data/test_catalog.py`, `tests/data/test_dataset.py` | Catalog 82 lớp QCVN 41:2019, staging scanner | 6 |
+| I | `tests/data/test_validator.py`, `test_snapshot.py`, `test_repair.py` | Quality Gate 5 quy tắc, snapshot bất biến, Dataset Repair clamp BBox | 22 |
+| J | `tests/data/test_eda.py` | Thống kê phân bố lớp, aspect ratio, bbox size | 4 |
+| K | `tests/training/test_training_config.py`, `test_training_state.py`, `test_hardware.py`, `test_training_runner.py`, `test_training_manager.py` | Runner, manager, hardware detection, workers config, safe resume | 27 |
+| L | `tests/training/test_evaluator.py`, `test_exporter.py`, `test_candidate.py` | Đánh giá test, export ONNX, parity check, finalize checkpoint | 18 |
+| M | `tests/test_promotion_rollback.py` | Atomic copy, auto backup, verify SHA-256, rollback 1-click | 13 |
+| N | `tests/ui/test_training_page.py` | Giao diện Lab 4 bước, live polling `@st.fragment`, nút resume & finalize | 18 |
+| O | `tests/test_windows_launcher.py`, `tests/test_spec_gaps.py`, `tests/ui/test_app_smoke.py` | Launcher Windows batch, app smoke test, edge cases | 21 |
+| Integration | `tests/integration/test_baseline_flow.py`, `test_phase2_flow.py` | Luồng ảnh/video end-to-end, luồng training → candidate → promotion | 6 |
+| **Tổng cộng** | **37 files kiểm thử tự động** | **Tất cả các module của hệ thống** | **215 tests** |
 
 ---
 
