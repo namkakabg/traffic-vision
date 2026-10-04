@@ -1,12 +1,12 @@
-from __future__ import annotations
-
 import io
 import re
+from collections.abc import Sequence
+from typing import Any
 
 import pandas as pd
 import streamlit as st
 
-from trafficvision.domain import RegisteredModel
+from trafficvision.domain import Detection, RegisteredModel
 from trafficvision.ui.theme import clean_html
 
 
@@ -157,11 +157,13 @@ def render_detection_summary(
     elapsed_ms: float,
     num_classes: int = 82,
     csv_bytes: bytes | None = None,
+    detections: Sequence[Detection] | None = None,
+    selected_index: int | None = None,
+    crop_bytes: bytes | None = None,
 ) -> None:
-    """Render modern summary panel matching design mockup."""
-    # Determine max confidence and detection items from CSV if available
+    """Render modern summary panel matching design mockup with interactive detection selection."""
     max_conf_str = "0%"
-    detection_items: list[dict[str, str]] = []
+    csv_rows: list[dict[str, Any]] = []
 
     if csv_bytes:
         try:
@@ -169,43 +171,19 @@ def render_detection_summary(
             if not df.empty and "confidence" in df.columns:
                 max_val = float(df["confidence"].max())
                 max_conf_str = f"{int(round(max_val * 100))}%"
-
-                # Extract prominent detections for display
-                for _, row in df.head(8).iterrows():
-                    c_id = str(row.get("class_id", ""))
-                    c_name = str(row.get("class_name", ""))
-                    conf = float(row.get("confidence", 0.0))
-                    score_str = f"{int(round(conf * 100))}%"
-
-                    mini, style = extract_mini_badge(c_name, c_id)
-                    display_name = format_display_name(c_name)
-
-                    detection_items.append(
-                        {
-                            "mini": mini,
-                            "style": style,
-                            "name": display_name,
-                            "code": f"Mã lớp: {c_id}" if c_id else "Phát hiện",
-                            "score": score_str,
-                        }
-                    )
+                csv_rows = df.to_dict("records")
         except Exception:
             pass
 
-    if not detection_items and class_counts:
-        max_conf_str = "100%" if total_detections > 0 else "0%"
-        for c_name, count in class_counts.items():
-            mini, style = extract_mini_badge(c_name)
-            display_name = format_display_name(c_name)
-            detection_items.append(
-                {
-                    "mini": mini,
-                    "style": style,
-                    "name": display_name,
-                    "code": f"Số lượng: {count}",
-                    "score": f"{count} đối tượng",
-                }
-            )
+    if not max_conf_str or max_conf_str == "0%":
+        if total_detections > 0:
+            if detections:
+                max_val = max(d.confidence for d in detections)
+                max_conf_str = f"{int(round(max_val * 100))}%"
+            else:
+                max_conf_str = "100%"
+        else:
+            max_conf_str = "0%"
 
     # Format numbers
     det_formatted = f"{total_detections:02d}" if total_detections < 100 else str(total_detections)
@@ -239,44 +217,134 @@ def render_detection_summary(
             </div>
     """
 
-    # Build HTML for detection items
-    if detection_items:
-        items_html = """
-            <div class="tv-section-label">Đối tượng nhận dạng</div>
-            <div class="tv-detect">
-        """
-        for it in detection_items:
+    has_individual_dets = (detections is not None and len(detections) > 0) or (len(csv_rows) > 0)
+
+    # Render top container with stats
+    st.markdown(clean_html(stats_html + "</div></div>"), unsafe_allow_html=True)
+
+    # Section for individual detections if available
+    if has_individual_dets:
+        st.markdown(
+            clean_html("""
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; margin-bottom:6px;">
+                <span class="tv-section-label" style="padding:0;">Đối tượng nhận dạng (Bấm chọn để rọi sáng)</span>
+            </div>
+            """),
+            unsafe_allow_html=True,
+        )
+
+        num_items = len(detections) if detections is not None else len(csv_rows)
+        # Limit interactive list to first 12 items for clean UX if huge number of detections
+        display_count = min(num_items, 12)
+
+        for i in range(display_count):
+            if detections is not None and i < len(detections):
+                det = detections[i]
+                c_name = det.class_name
+                c_id = str(det.class_id)
+                conf = det.confidence
+            else:
+                row = csv_rows[i]
+                c_name = str(row.get("class_name", ""))
+                c_id = str(row.get("class_id", ""))
+                conf = float(row.get("confidence", 0.0))
+
+            score_str = f"{int(round(conf * 100))}%"
+            mini, style = extract_mini_badge(c_name, c_id)
+            display_name = format_display_name(c_name)
+            is_active = selected_index == i
+
+            # Render button row for selecting using sign icon directly
+            icon_prefix = f"{mini} " if mini else ""
+            if is_active:
+                btn_label = f"🎯 {icon_prefix}{display_name}  ({score_str})  ✓"
+            else:
+                btn_label = f"{icon_prefix}{display_name}  ({score_str})"
+
+            if st.button(
+                btn_label,
+                key=f"det_row_select_{i}",
+                type="primary" if is_active else "secondary",
+                use_container_width=True,
+            ):
+                if st.session_state.get("selected_detection_idx") == i:
+                    st.session_state["selected_detection_idx"] = None
+                else:
+                    st.session_state["selected_detection_idx"] = i
+                st.rerun()
+
+        # If a detection is currently selected, show the zoomed crop preview and clear button
+        if selected_index is not None and crop_bytes is not None and 0 <= selected_index < num_items:
+            if detections is not None and selected_index < len(detections):
+                sel_name = detections[selected_index].class_name
+                sel_id = str(detections[selected_index].class_id)
+            else:
+                sel_name = str(csv_rows[selected_index].get("class_name", ""))
+                sel_id = str(csv_rows[selected_index].get("class_id", ""))
+            sel_icon, _ = extract_mini_badge(sel_name, sel_id)
+            sel_display = format_display_name(sel_name)
+            sel_prefix = f"{sel_icon} " if sel_icon else ""
+
+            st.markdown(
+                clean_html(f"""
+                <div class="tv-crop-card">
+                    <div class="tv-crop-header">
+                        <span>🔍 Chi tiết phóng to: <strong>{sel_prefix}{sel_display}</strong></span>
+                        <span style="color:#2563eb; font-weight:800;">🎯 SPOTLIGHT</span>
+                    </div>
+                </div>
+                """),
+                unsafe_allow_html=True,
+            )
+            st.image(crop_bytes, caption=f"{sel_prefix}{sel_display}", use_container_width=True)
+
+            if st.button("✖ Bỏ chọn (Xem toàn bộ ảnh)", key="btn_clear_selection", use_container_width=True):
+                st.session_state["selected_detection_idx"] = None
+                st.rerun()
+
+    elif class_counts:
+        # Fallback to grouped class counts
+        st.markdown(
+            clean_html("""
+            <div class="tv-section-label" style="margin-top:8px;">Đối tượng nhận dạng</div>
+            """),
+            unsafe_allow_html=True,
+        )
+        items_html = "<div class='tv-detect'>"
+        for c_name, count in class_counts.items():
+            mini, style = extract_mini_badge(c_name)
+            display_name = format_display_name(c_name)
             items_html += f"""
                 <div class="tv-row">
-                    <div class="tv-mini" style="{it["style"]}">{it["mini"]}</div>
+                    <div class="tv-mini" style="{style}">{mini}</div>
                     <div>
-                        <div class="tv-rname">{it["name"]}</div>
-                        <div class="tv-rcode">{it["code"]}</div>
+                        <div class="tv-rname">{display_name}</div>
+                        <div class="tv-rcode">Số lượng: {count}</div>
                     </div>
-                    <div class="tv-score">{it["score"]}</div>
+                    <div class="tv-score">{count} đối tượng</div>
                 </div>
             """
         items_html += "</div>"
-        stats_html += items_html
+        st.markdown(clean_html(items_html), unsafe_allow_html=True)
     else:
-        stats_html += """
-            <div class="tv-notice" style="background:#f4f6fa; border-color:#e0e7ef; color:#5c6c80;">
+        st.markdown(
+            clean_html("""
+            <div class="tv-notice" style="background:#f4f6fa; border-color:#e0e7ef; color:#5c6c80; margin-top:8px;">
                 <span>ℹ️</span>
                 <span>Không phát hiện đối tượng nào vượt ngưỡng tin cậy trong tệp tải lên.</span>
             </div>
-        """
+            """),
+            unsafe_allow_html=True,
+        )
 
     # Notice disclaimer
-    stats_html += """
-            <div class="tv-notice">
-                <span>ⓘ</span>
-                <span>Kết quả AI mang tính hỗ trợ. Độ chính xác có thể giảm khi biển báo nhỏ, bị che khuất hoặc ảnh thiếu sáng.</span>
-            </div>
-        </div>
+    disclaimer_html = """
+    <div class="tv-notice" style="margin-top:8px;">
+        <span>ⓘ</span>
+        <span>Kết quả AI mang tính hỗ trợ. Độ chính xác có thể giảm khi biển báo nhỏ, bị che khuất hoặc ảnh thiếu sáng.</span>
     </div>
     """
-
-    st.markdown(clean_html(stats_html), unsafe_allow_html=True)
+    st.markdown(clean_html(disclaimer_html), unsafe_allow_html=True)
 
 
 def render_download_buttons(

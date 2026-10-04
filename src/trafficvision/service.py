@@ -104,6 +104,8 @@ class AnalysisService:
             record=record,
             annotated_media_path=annotated_path,
             csv_path=csv_path,
+            detections=analysis.detections,
+            staged_media_path=staged.staged_path,
         )
 
     def analyze_video_upload(

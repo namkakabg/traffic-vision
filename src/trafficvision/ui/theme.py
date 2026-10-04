@@ -317,9 +317,45 @@ CUSTOM_CSS = f"""
         gap: 10px;
         padding: 10px 12px;
         border-bottom: 1px solid #edf0f4;
+        transition: all 0.15s ease-in-out;
     }}
     .tv-row:last-child {{
         border-bottom: 0;
+    }}
+    .tv-row-selected {{
+        background: #f0f7ff !important;
+        border-left: 3.5px solid #2563eb !important;
+    }}
+    .tv-badge-index {{
+        display: inline-block;
+        padding: 1px 5px;
+        margin-right: 4px;
+        border-radius: 4px;
+        background: #e2e8f0;
+        color: #334155;
+        font-size: 10px;
+        font-weight: 800;
+    }}
+    .tv-badge-index-active {{
+        background: #2563eb;
+        color: #ffffff;
+    }}
+    .tv-crop-card {{
+        margin-top: 10px;
+        margin-bottom: 14px;
+        padding: 10px 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+    }}
+    .tv-crop-header {{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #1e293b;
     }}
     .tv-mini {{
         display: grid;

@@ -3,11 +3,15 @@ from __future__ import annotations
 import io
 from typing import TYPE_CHECKING
 
+import cv2
+import numpy as np
 import streamlit as st
 from PIL import Image, ImageOps
 
 from trafficvision.domain import AnalysisArtifacts, VideoProgress
+from trafficvision.rendering import annotate_image, crop_detection
 from trafficvision.ui.components import (
+    extract_mini_badge,
     render_baseline_warning,
     render_detection_summary,
     render_download_buttons,
@@ -89,6 +93,7 @@ def render_analysis_page(services: AppServices) -> None:
                 st.session_state.pop("image_result", None)
                 st.session_state.pop("image_analysis_error", None)
                 st.session_state.pop("skip_auto_analyze_sig", None)
+                st.session_state.pop("selected_detection_idx", None)
                 if st.session_state.get("active_result_type") == "image":
                     st.session_state.pop("active_result_type", None)
 
@@ -122,7 +127,7 @@ def render_analysis_page(services: AppServices) -> None:
                                     services.analysis_service.analyze_image_upload(
                                         filename=uploaded_image.name,
                                         data=uploaded_image.getvalue(),
-                                    )
+                                     )
                                 )
                                 st.session_state["image_result"] = artifacts
                                 st.session_state["active_result_type"] = "image"
@@ -132,10 +137,52 @@ def render_analysis_page(services: AppServices) -> None:
                             st.error(f"Lỗi khi xử lý ảnh: {exc}")
                 else:
                     result: AnalysisArtifacts = st.session_state["image_result"]
-                    annotated_data = result.annotated_media_path.read_bytes()
+                    selected_idx = st.session_state.get("selected_detection_idx")
+
+                    # Check if spotlight is active and we have staged image + detections
+                    display_data: bytes | None = None
+                    caption_text = f"Đã phát hiện {result.record.total_detections} biển báo ({result.record.inference_ms:.1f} ms)"
+
+                    if (
+                        selected_idx is not None
+                        and result.detections
+                        and result.staged_media_path
+                        and result.staged_media_path.is_file()
+                    ):
+                        try:
+                            # Re-annotate with spotlight on selected_idx using robust PIL image decoding
+                            with Image.open(result.staged_media_path) as pil_raw:
+                                pil_raw = ImageOps.exif_transpose(pil_raw)
+                                rgb_arr = np.array(pil_raw.convert("RGB"))
+                                img_bgr = cv2.cvtColor(rgb_arr, cv2.COLOR_RGB2BGR)
+
+                            display_data = annotate_image(
+                                img_bgr,
+                                result.detections,
+                                format="JPEG",
+                                selected_index=selected_idx,
+                            )
+                            sel_det = (
+                                result.detections[selected_idx]
+                                if 0 <= selected_idx < len(result.detections)
+                                else None
+                            )
+                            if sel_det:
+                                sel_icon, _ = extract_mini_badge(sel_det.class_name, str(sel_det.class_id))
+                                icon_str = f"{sel_icon} " if sel_icon else ""
+                                caption_text = (
+                                    f"🎯 Đang rọi sáng biển báo: "
+                                    f"{icon_str}{sel_det.class_name} ({sel_det.confidence * 100:.0f}%)"
+                                )
+                        except Exception:
+                            display_data = None
+
+                    if display_data is None:
+                        display_data = result.annotated_media_path.read_bytes()
+
                     st.image(
-                        annotated_data,
-                        caption=f"Đã phát hiện {result.record.total_detections} biển báo ({result.record.inference_ms:.1f} ms)",
+                        display_data,
+                        caption=caption_text,
                         use_container_width=True,
                     )
 
@@ -280,12 +327,40 @@ def render_analysis_page(services: AppServices) -> None:
             annotated_bytes = current_result.annotated_media_path.read_bytes()
             mime_type = "video/mp4" if current_result.record.media_type == "video" else "image/jpeg"
 
+            selected_idx = st.session_state.get("selected_detection_idx")
+            crop_bytes: bytes | None = None
+
+            if (
+                selected_idx is not None
+                and current_result.detections
+                and 0 <= selected_idx < len(current_result.detections)
+                and current_result.staged_media_path
+                and current_result.staged_media_path.is_file()
+            ):
+                try:
+                    with Image.open(current_result.staged_media_path) as pil_raw:
+                        pil_raw = ImageOps.exif_transpose(pil_raw)
+                        rgb_arr = np.array(pil_raw.convert("RGB"))
+                        raw_img = cv2.cvtColor(rgb_arr, cv2.COLOR_RGB2BGR)
+
+                    crop_bytes = crop_detection(
+                        raw_img,
+                        current_result.detections[selected_idx],
+                        padding=18,
+                        format="JPEG",
+                    )
+                except Exception:
+                    crop_bytes = None
+
             render_detection_summary(
                 class_counts=current_result.record.class_counts,
                 total_detections=current_result.record.total_detections,
                 elapsed_ms=current_result.record.inference_ms,
                 num_classes=num_classes,
                 csv_bytes=csv_bytes,
+                detections=current_result.detections if current_result.detections else None,
+                selected_index=selected_idx,
+                crop_bytes=crop_bytes,
             )
 
             render_download_buttons(

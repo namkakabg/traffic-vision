@@ -230,3 +230,102 @@ def test_analysis_page_auto_analyzes_image_on_upload(tmp_path: Path, monkeypatch
     assert mock_analyze.call_count == prev_calls + 1
 
 
+def test_analysis_page_detection_row_selection_spotlight(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("TRAFFICVISION_ROOT", str(tmp_path))
+
+    paths = AppPaths.from_root(tmp_path)
+    paths.ensure_directories()
+    dummy_onnx = tmp_path / "model.onnx"
+    dummy_onnx.write_bytes(b"dummy-onnx-bytes")
+    digest = sha256_file(dummy_onnx)
+
+    manifest = ModelManifest(
+        schema_version="1.0",
+        model_id="yolo11n-baseline-test",
+        stage="production",
+        artifact_filename="model.onnx",
+        backend="onnx",
+        task="detect",
+        class_names={0: "person", 1: "bicycle"},
+        imgsz=640,
+        sha256=digest,
+        source="test",
+        created_at="2026-09-27T21:00:00Z",
+    )
+    registry = ModelRegistry(paths)
+    registry.install_baseline(dummy_onnx, manifest)
+
+    # Prepare staged original image and annotated image
+    staged_img_path = tmp_path / "staged.jpg"
+    annotated_out = tmp_path / "annotated.jpg"
+    buf = io.BytesIO()
+    Image.new("RGB", (100, 100), color=(128, 128, 128)).save(buf, format="JPEG")
+    staged_img_path.write_bytes(buf.getvalue())
+    annotated_out.write_bytes(buf.getvalue())
+
+    csv_out = tmp_path / "detections.csv"
+    csv_out.write_bytes(b"class_id,class_name,confidence\n0,person,0.88\n1,bicycle,0.75\n")
+
+    from trafficvision.domain import Detection
+
+    det1 = Detection(class_id=0, class_name="person", confidence=0.88, xyxy=(10.0, 10.0, 50.0, 50.0))
+    det2 = Detection(class_id=1, class_name="bicycle", confidence=0.75, xyxy=(55.0, 20.0, 90.0, 80.0))
+
+    mock_artifacts = AnalysisArtifacts(
+        record=AnalysisRecord(
+            record_id="spotlight-rec-1",
+            media_type="image",
+            original_filename="spotlight_test.jpg",
+            model_id="yolo11n-baseline-test",
+            model_stage="production",
+            confidence_threshold=0.25,
+            iou_threshold=0.7,
+            total_detections=2,
+            class_counts={"person": 1, "bicycle": 1},
+            inference_ms=22.0,
+            created_at="2026-10-04T00:00:00Z",
+            annotated_path=annotated_out,
+            csv_path=csv_out,
+        ),
+        annotated_media_path=annotated_out,
+        csv_path=csv_out,
+        detections=(det1, det2),
+        staged_media_path=staged_img_path,
+    )
+
+    mock_analyze = MagicMock(return_value=mock_artifacts)
+    monkeypatch.setattr(AnalysisService, "analyze_image_upload", mock_analyze)
+
+    app_path = str(Path(__file__).parents[2] / "app.py")
+    at = AppTest.from_file(app_path, default_timeout=25)
+    at.run()
+    assert not at.exception
+
+    # Upload test image
+    at.file_uploader[0].upload("spotlight_test.jpg", buf.getvalue()).run()
+    assert not at.exception
+
+    # Selection buttons should be rendered for each detection
+    det_btn_0 = [b for b in at.button if b.key == "det_row_select_0"]
+    det_btn_1 = [b for b in at.button if b.key == "det_row_select_1"]
+    assert len(det_btn_0) == 1
+    assert len(det_btn_1) == 1
+
+    # Initially, no selection is active
+    assert at.session_state.get("selected_detection_idx") is None
+
+    # Click on the first detection row
+    det_btn_0[0].click().run()
+    assert not at.exception
+    assert at.session_state.get("selected_detection_idx") == 0
+
+    # Deselect button should appear
+    clear_btn = [b for b in at.button if b.key == "btn_clear_selection"]
+    assert len(clear_btn) == 1
+
+    # Click clear selection button
+    clear_btn[0].click().run()
+    assert not at.exception
+    assert at.session_state.get("selected_detection_idx") is None
+
+

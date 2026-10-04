@@ -146,3 +146,5 @@ class AnalysisArtifacts(BaseModel):
     record: AnalysisRecord
     annotated_media_path: Path
     csv_path: Path
+    detections: tuple[Detection, ...] = ()
+    staged_media_path: Path | None = None

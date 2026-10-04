@@ -72,3 +72,51 @@ def test_detections_csv_empty_detections():
     lines = text.strip().splitlines()
     assert len(lines) == 1
     assert lines[0] == "source,frame_index,timestamp_s,class_id,class_name,confidence,x1,y1,x2,y2"
+
+
+def test_annotate_image_with_spotlight_selection():
+    img_bgr = np.zeros((300, 400, 3), dtype=np.uint8)
+    det1 = Detection(
+        class_id=0,
+        class_name="Cấm đi ngược chiều",
+        confidence=0.91,
+        xyxy=(20.0, 30.0, 150.0, 160.0),
+    )
+    det2 = Detection(
+        class_id=1,
+        class_name="Biển cảnh báo nguy hiểm",
+        confidence=0.78,
+        xyxy=(200.0, 50.0, 350.0, 200.0),
+    )
+
+    # Spotlight det1 (index 0)
+    annotated_bytes = annotate_image(img_bgr, [det1, det2], format="JPEG", selected_index=0)
+    assert isinstance(annotated_bytes, bytes)
+    rendered = Image.open(io.BytesIO(annotated_bytes))
+    assert rendered.size == (400, 300)
+
+    # Spotlight det2 (index 1)
+    annotated_bytes_2 = annotate_image(img_bgr, [det1, det2], format="JPEG", selected_index=1)
+    assert isinstance(annotated_bytes_2, bytes)
+    # The two rendered byte sequences should differ due to different spotlight highlights
+    assert annotated_bytes != annotated_bytes_2
+
+
+def test_crop_detection():
+    from trafficvision.rendering import crop_detection
+
+    img_bgr = np.full((300, 400, 3), 128, dtype=np.uint8)
+    # Put a distinct color in the region
+    img_bgr[30:160, 20:150] = (0, 255, 0)
+    det = Detection(
+        class_id=0,
+        class_name="Cấm đi ngược chiều",
+        confidence=0.95,
+        xyxy=(20.0, 30.0, 150.0, 160.0),
+    )
+
+    crop_bytes = crop_detection(img_bgr, det, padding=10, format="JPEG")
+    assert isinstance(crop_bytes, bytes)
+    cropped_img = Image.open(io.BytesIO(crop_bytes))
+    # Width: (150 - 20) + 2*10 = 150, Height: (160 - 30) + 2*10 = 150
+    assert cropped_img.size == (150, 150)
