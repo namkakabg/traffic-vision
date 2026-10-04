@@ -7,7 +7,17 @@ from pathlib import Path
 
 from trafficvision.config import AppPaths
 
-VALID_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
+VALID_IMAGE_EXTENSIONS = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".bmp",
+    ".webp",
+    ".tif",
+    ".tiff",
+    ".heic",
+    ".heif",
+}
 
 
 @dataclass(frozen=True)

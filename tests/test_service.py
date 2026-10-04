@@ -99,3 +99,25 @@ def test_analyze_video_failure_leaves_no_history_or_partial_file(service_env):
     # No partial output should remain
     partial_files = list(paths.outputs.glob("*.partial*"))
     assert len(partial_files) == 0
+
+
+def test_analyze_heic_image_upload(service_env):
+    service, repo, paths = service_env
+
+    # Create valid sample HEIF/HEIC image
+    img = Image.new("RGB", (120, 80), color=(40, 80, 120))
+    buf = io.BytesIO()
+    img.save(buf, format="HEIF")
+    heic_bytes = buf.getvalue()
+
+    artifacts = service.analyze_image_upload(filename="traffic_camera.heic", data=heic_bytes)
+
+    assert artifacts.annotated_media_path.is_file()
+    assert artifacts.csv_path.is_file()
+    assert artifacts.record.original_filename == "traffic_camera.heic"
+    assert artifacts.record.total_detections == 1
+
+    recent = repo.list_recent()
+    assert len(recent) == 1
+    assert recent[0].original_filename == "traffic_camera.heic"
+

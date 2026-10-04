@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import io
 from typing import TYPE_CHECKING
 
 import streamlit as st
+from PIL import Image, ImageOps
 
 from trafficvision.domain import AnalysisArtifacts, VideoProgress
 from trafficvision.ui.components import (
@@ -71,24 +73,51 @@ def render_analysis_page(services: AppServices) -> None:
                 "Chọn tệp ảnh giao thông",
                 type=img_exts,
                 key="analysis_image_uploader",
-                help="Hỗ trợ các định dạng JPG, PNG, WEBP",
+                help="Hỗ trợ các định dạng JPG, PNG, WEBP, HEIC",
             )
+
+            # Auto-clear previous detection results when a new image is chosen or file is cleared
+            current_img_sig = (
+                f"{uploaded_image.name}_{getattr(uploaded_image, 'file_id', '')}_{uploaded_image.size}"
+                if uploaded_image is not None
+                else None
+            )
+            last_img_sig = st.session_state.get("last_uploaded_image_sig")
+
+            if current_img_sig != last_img_sig:
+                st.session_state["last_uploaded_image_sig"] = current_img_sig
+                st.session_state.pop("image_result", None)
+                st.session_state.pop("image_analysis_error", None)
+                st.session_state.pop("skip_auto_analyze_sig", None)
+                if st.session_state.get("active_result_type") == "image":
+                    st.session_state.pop("active_result_type", None)
 
             if uploaded_image is not None:
                 file_size_kb = len(uploaded_image.getvalue()) / 1024.0
 
                 if "image_result" not in st.session_state:
-                    st.image(
-                        uploaded_image,
-                        caption=f"Ảnh gốc: {uploaded_image.name}",
-                        use_container_width=True,
-                    )
-                    btn_analyze = st.button(
-                        "🚀 Bắt đầu phân tích ảnh", type="primary", key="btn_run_img"
-                    )
-                    if btn_analyze:
+                    if st.session_state.get("image_analysis_error"):
+                        st.error(f"Lỗi khi xử lý ảnh: {st.session_state['image_analysis_error']}")
+                        if st.button("🚀 Thử phân tích lại", type="primary", key="btn_retry_img"):
+                            st.session_state.pop("image_analysis_error", None)
+                            st.rerun()
+                    elif st.session_state.get("skip_auto_analyze_sig") == current_img_sig:
                         try:
-                            with st.spinner("Đang chạy mô hình AI nhận dạng..."):
+                            with Image.open(io.BytesIO(uploaded_image.getvalue())) as preview_img:
+                                st.image(
+                                    ImageOps.exif_transpose(preview_img),
+                                    caption=f"Ảnh gốc: {uploaded_image.name}",
+                                    use_container_width=True,
+                                )
+                        except Exception:
+                            st.warning(f"⚠️ Không thể hiển thị bản xem trước cho `{uploaded_image.name}`.")
+                        if st.button("🚀 Bắt đầu phân tích ảnh", type="primary", key="btn_run_img"):
+                            st.session_state.pop("skip_auto_analyze_sig", None)
+                            st.rerun()
+                    else:
+                        # Auto-analyze immediately upon selection!
+                        try:
+                            with st.spinner("Đang tự động nhận diện biển báo giao thông..."):
                                 artifacts: AnalysisArtifacts = (
                                     services.analysis_service.analyze_image_upload(
                                         filename=uploaded_image.name,
@@ -99,6 +128,7 @@ def render_analysis_page(services: AppServices) -> None:
                                 st.session_state["active_result_type"] = "image"
                             st.rerun()
                         except Exception as exc:
+                            st.session_state["image_analysis_error"] = str(exc)
                             st.error(f"Lỗi khi xử lý ảnh: {exc}")
                 else:
                     result: AnalysisArtifacts = st.session_state["image_result"]
@@ -121,9 +151,28 @@ def render_analysis_page(services: AppServices) -> None:
                         unsafe_allow_html=True,
                     )
 
-                    if st.button("＋ Phân tích ảnh khác", key="btn_clear_img"):
-                        del st.session_state["image_result"]
-                        st.rerun()
+                    # Action buttons: Re-analyze or Choose another image
+                    col_act1, col_act2 = st.columns([1, 1])
+                    with col_act1:
+                        if st.button("🔄 Phân tích lại", type="primary", key="btn_reanalyze_img"):
+                            try:
+                                with st.spinner("Đang phân tích lại ảnh..."):
+                                    artifacts = services.analysis_service.analyze_image_upload(
+                                        filename=uploaded_image.name,
+                                        data=uploaded_image.getvalue(),
+                                    )
+                                    st.session_state["image_result"] = artifacts
+                                    st.session_state["active_result_type"] = "image"
+                                st.rerun()
+                            except Exception as exc:
+                                st.error(f"Lỗi khi xử lý ảnh: {exc}")
+                    with col_act2:
+                        if st.button("＋ Phân tích ảnh khác", key="btn_clear_img"):
+                            st.session_state.pop("image_result", None)
+                            st.session_state["skip_auto_analyze_sig"] = current_img_sig
+                            if st.session_state.get("active_result_type") == "image":
+                                st.session_state.pop("active_result_type", None)
+                            st.rerun()
 
         # --- TAB VIDEO ---
         with tab_video:
@@ -133,6 +182,20 @@ def render_analysis_page(services: AppServices) -> None:
                 key="analysis_video_uploader",
                 help="Hỗ trợ MP4, AVI, MOV",
             )
+
+            # Auto-clear previous detection results when a new video is chosen or file is cleared
+            current_vid_sig = (
+                f"{uploaded_video.name}_{getattr(uploaded_video, 'file_id', '')}_{uploaded_video.size}"
+                if uploaded_video is not None
+                else None
+            )
+            last_vid_sig = st.session_state.get("last_uploaded_video_sig")
+
+            if current_vid_sig != last_vid_sig:
+                st.session_state["last_uploaded_video_sig"] = current_vid_sig
+                st.session_state.pop("video_result", None)
+                if st.session_state.get("active_result_type") == "video":
+                    st.session_state.pop("active_result_type", None)
 
             if uploaded_video is not None:
                 vid_size_mb = len(uploaded_video.getvalue()) / (1024 * 1024)
@@ -144,13 +207,24 @@ def render_analysis_page(services: AppServices) -> None:
                     )
 
                     if btn_analyze_video:
+                        status_placeholder = st.empty()
                         progress_bar = st.progress(0.0, text="Đang chuẩn bị xử lý video...")
 
                         def update_progress(prog: VideoProgress) -> None:
                             percent = int(prog.fraction * 100)
+                            msg = f"Đang xử lý khung hình {prog.current_frame}/{prog.total_frames} ({percent}%)"
                             progress_bar.progress(
                                 prog.fraction,
-                                text=f"Đang xử lý khung hình {prog.current_frame}/{prog.total_frames} ({percent}%)",
+                                text=msg,
+                            )
+                            status_placeholder.markdown(
+                                clean_html(f"""
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:13px; font-weight:700; color:#132238;">
+                                    <span>🎬 Tiến trình xử lý video</span>
+                                    <span style="color:#2563eb;">Khung hình {prog.current_frame}/{prog.total_frames} ({percent}%)</span>
+                                </div>
+                                """),
+                                unsafe_allow_html=True,
                             )
 
                         try:
@@ -184,7 +258,9 @@ def render_analysis_page(services: AppServices) -> None:
                     )
 
                     if st.button("＋ Phân tích video khác", key="btn_clear_vid"):
-                        del st.session_state["video_result"]
+                        st.session_state.pop("video_result", None)
+                        if st.session_state.get("active_result_type") == "video":
+                            st.session_state.pop("active_result_type", None)
                         st.rerun()
 
     # --- SUMMARY PANEL (Right Column) ---

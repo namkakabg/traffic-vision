@@ -25,6 +25,11 @@ def test_theme_css_contains_input_contrast_rules():
     assert 'div[data-baseweb="popover"]' in CUSTOM_CSS
     assert 'li[role="option"]' in CUSTOM_CSS
 
+    # Check progress bar styling does not clamp all direct child divs to 8px
+    assert '[data-testid="stProgressBarTrack"]' in CUSTOM_CSS
+    assert '[data-testid="stProgress"] > div {' not in CUSTOM_CSS
+    assert 'div[role="progressbar"]' in CUSTOM_CSS
+
 
 def test_streamlit_config_theme():
     """Verify that .streamlit/config.toml uses proper light theme colors without dark input conflict."""

@@ -548,7 +548,7 @@ Pyramid kiểm thử TrafficVision
 
 ### TC-G-03: Trang Phân tích — định dạng uploader đúng
 
-**Kết quả mong đợi:** Image: `{jpg, jpeg, png, webp}`; Video: `{mp4, avi, mov}`  
+**Kết quả mong đợi:** Image: `{jpg, jpeg, png, webp, heic, heif}`; Video: `{mp4, avi, mov}`  
 **Mức độ:** P1
 
 ---

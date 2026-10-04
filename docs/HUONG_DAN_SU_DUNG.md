@@ -57,7 +57,7 @@
 ### Các ưu điểm nổi bật:
 * **Tối ưu suy luận:** Hỗ trợ mô hình dạng ONNX siêu nhẹ, chạy mượt mà trực tiếp trên vi xử lý CPU (macOS Apple Silicon/Intel, Windows PC) mà không bắt buộc phải có card đồ họa rời (GPU).
 * **Danh mục chuẩn hóa 82 lớp:** Nhận dạng chính xác 82 loại biển báo giao thông Việt Nam theo Quy chuẩn kỹ thuật quốc gia QCVN 41:2019/BGTVT (Biển báo cấm, Biển hiệu lệnh, Biển cảnh báo/nguy hiểm, Biển chỉ dẫn).
-* **Xử lý đa phương tiện:** Hỗ trợ tải lên ảnh tĩnh (JPG, PNG, WEBP) và video chuyển động (MP4, AVI, MOV) kèm thanh tiến trình trực quan theo thời gian thực.
+* **Xử lý đa phương tiện:** Hỗ trợ tải lên ảnh tĩnh (JPG, PNG, WEBP, HEIC/HEIF) và video chuyển động (MP4, AVI, MOV) kèm thanh tiến trình trực quan theo thời gian thực.
 * **Quy trình MLOps khép kín:** Tích hợp sẵn phòng thí nghiệm Huấn luyện AI 4 bước: Thu nạp dữ liệu $\rightarrow$ Cổng kiểm định chất lượng (Quality Gate) & EDA $\rightarrow$ Huấn luyện ngầm độc lập $\rightarrow$ Đóng gói & Thăng cấp an toàn với tính năng Rollback 1-click.
 
 ---
@@ -166,9 +166,9 @@ Thanh Sidebar luôn hiển thị trạng thái thẻ mô hình đang vận hành
 
 #### A. Phân tích Hình ảnh:
 1. Nhấp chọn tab **📷 Hình ảnh**.
-2. Kéo thả hoặc nhấn nút **Browse files** để chọn ảnh chụp giao thông (định dạng hỗ trợ: `.jpg`, `.jpeg`, `.png`, `.webp`).
-3. Xem trước ảnh gốc được hiển thị trên màn hình.
-4. Bấm nút **🚀 Bắt đầu phân tích ảnh**.
+2. Kéo thả hoặc nhấn nút **Browse files** để chọn ảnh chụp giao thông (định dạng hỗ trợ: `.jpg`, `.jpeg`, `.png`, `.webp`, `.heic`, `.heif`).
+3. Hệ thống sẽ **tự động nhận diện biển báo ngay khi bạn tải ảnh lên** và hiển thị kết quả trực quan ngay lập tức.
+4. Nếu bạn muốn chạy nhận diện lại (ví dụ sau khi điều chỉnh ngưỡng độ tin cậy hoặc IoU trong Cài đặt), hãy bấm nút **🔄 Phân tích lại**.
 5. **Kết quả trả về:**
    * Ảnh đã qua xử lý được vẽ các khung bao màu (Bounding box) quanh biển báo kèm tên biển báo và chỉ số tin cậy (Confidence).
    * Bảng tóm tắt bên phải hiển thị: Tổng số biển báo phát hiện, biển báo có độ tin cậy cao nhất, thời gian suy luận (miligiây).

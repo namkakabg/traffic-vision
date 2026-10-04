@@ -30,6 +30,13 @@ def create_sample_webp_bytes(width=100, height=100, color=(0, 255, 0)) -> bytes:
     return buf.getvalue()
 
 
+def create_sample_heic_bytes(width=100, height=100, color=(0, 0, 255)) -> bytes:
+    img = Image.new("RGB", (width, height), color)
+    buf = io.BytesIO()
+    img.save(buf, format="HEIF")
+    return buf.getvalue()
+
+
 def test_stage_upload_safe_filename_and_path_traversal(app_config: AppConfig):
     data = create_sample_jpeg_bytes()
 
@@ -129,3 +136,73 @@ def test_stage_upload_and_decode_webp_image(app_config: AppConfig):
     assert isinstance(bgr, np.ndarray)
     assert bgr.shape == (60, 80, 3)
     assert bgr.dtype == np.uint8
+
+
+def test_stage_upload_and_decode_heic_image(app_config: AppConfig):
+    heic_data = create_sample_heic_bytes(width=90, height=70, color=(12, 34, 56))
+    staged = stage_upload(
+        filename="traffic_photo.heic",
+        data=heic_data,
+        media_type="image",
+        paths=app_config.paths,
+        config=app_config,
+    )
+    assert staged.staged_path.suffix == ".heic"
+    assert staged.staged_path.is_file()
+
+    bgr = decode_image(staged)
+    assert isinstance(bgr, np.ndarray)
+    assert bgr.shape == (70, 90, 3)
+    assert bgr.dtype == np.uint8
+
+
+def test_stage_upload_and_decode_heif_image(app_config: AppConfig):
+    heif_data = create_sample_heic_bytes(width=64, height=48, color=(70, 80, 90))
+    staged = stage_upload(
+        filename="traffic_photo.heif",
+        data=heif_data,
+        media_type="image",
+        paths=app_config.paths,
+        config=app_config,
+    )
+    assert staged.staged_path.suffix == ".heif"
+    assert staged.staged_path.is_file()
+
+    bgr = decode_image(staged)
+    assert isinstance(bgr, np.ndarray)
+    assert bgr.shape == (48, 64, 3)
+    assert bgr.dtype == np.uint8
+
+
+def test_stage_upload_rejects_corrupted_heic_image(app_config: AppConfig):
+    corrupt_data = b"NOT_A_VALID_HEIC_FILE_HEADER"
+    with pytest.raises(MediaValidationError, match="Invalid or unreadable image"):
+        stage_upload(
+            filename="broken.heic",
+            data=corrupt_data,
+            media_type="image",
+            paths=app_config.paths,
+            config=app_config,
+        )
+
+
+def test_decode_image_heic_orientation(app_config: AppConfig):
+    # Create image with EXIF orientation metadata
+    img = Image.new("RGB", (100, 60), color=(15, 25, 35))
+    exif = img.getexif()
+    exif[0x0112] = 6  # Rotated 90 CW in EXIF
+    buf = io.BytesIO()
+    img.save(buf, format="HEIF", exif=exif.tobytes())
+
+    staged = stage_upload(
+        filename="iphone_shot.heic",
+        data=buf.getvalue(),
+        media_type="image",
+        paths=app_config.paths,
+        config=app_config,
+    )
+    bgr = decode_image(staged)
+    assert isinstance(bgr, np.ndarray)
+    # When orientation is transposed from 100x60, it becomes 60x100
+    assert bgr.shape == (100, 60, 3)
+

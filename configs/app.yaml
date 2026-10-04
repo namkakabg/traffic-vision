@@ -17,6 +17,8 @@ media:
     - ".jpeg"
     - ".png"
     - ".webp"
+    - ".heic"
+    - ".heif"
   allowed_video_extensions:
     - ".mp4"
     - ".avi"

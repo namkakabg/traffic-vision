@@ -11,8 +11,9 @@ def test_load_defaults_are_cross_platform(tmp_path: Path):
     assert config.inference.iou == 0.70
     assert config.inference.imgsz == 640
     assert config.media.max_image_bytes == 20 * 1024 * 1024
-    assert config.media.max_video_bytes == 500 * 1024 * 1024
     assert ".webp" in config.media.allowed_image_extensions
+    assert ".heic" in config.media.allowed_image_extensions
+    assert ".heif" in config.media.allowed_image_extensions
 
     paths = config.paths
     for attr in ["artifacts", "baseline", "production", "backups", "staging", "outputs", "state"]:

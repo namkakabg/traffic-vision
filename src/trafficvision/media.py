@@ -7,7 +7,14 @@ from typing import Literal
 
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
+
+try:
+    import pillow_heif
+
+    pillow_heif.register_heif_opener()
+except ImportError:
+    pass
 
 from trafficvision.config import AppConfig, AppPaths
 from trafficvision.domain import StagedMedia
@@ -97,6 +104,7 @@ def decode_image(media: StagedMedia) -> np.ndarray:
     # Using Pillow then converting to BGR guarantees consistent cross-platform decoding
     try:
         with Image.open(media.staged_path) as img:
+            img = ImageOps.exif_transpose(img)
             rgb = np.array(img.convert("RGB"))
             return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     except Exception as e:

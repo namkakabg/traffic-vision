@@ -918,15 +918,34 @@ CUSTOM_CSS = f"""
     }}
 
     /* Progress Bar */
-    [data-testid="stProgress"] > div {{
+    [data-testid="stProgress"] {{
+        margin: 10px 0 14px 0 !important;
+    }}
+    /* Ensure label text (e.g., frame processing progress) is fully visible and not clipped */
+    [data-testid="stProgress"] [data-testid="stMarkdownContainer"] p,
+    [data-testid="stProgress"] p,
+    [data-testid="stProgress"] span,
+    [data-testid="stProgress"] label {{
+        color: #132238 !important;
+        font-size: 13.5px !important;
+        font-weight: 600 !important;
+        line-height: 1.5 !important;
+        margin: 0 0 6px 0 !important;
+        overflow: visible !important;
+        display: block !important;
+    }}
+    /* Only style the actual progress track, never label containers */
+    [data-testid="stProgressBarTrack"],
+    [data-testid="stProgress"] div:has(>[role="progressbar"]) {{
         background-color: #e2e8f0 !important;
         border-radius: 99px !important;
-        height: 8px !important;
+        height: 10px !important;
         overflow: hidden !important;
     }}
     [data-testid="stProgress"] div[role="progressbar"] {{
         background: linear-gradient(90deg, #2563eb, #38bdf8) !important;
         border-radius: 99px !important;
+        height: 10px !important;
     }}
 
     /* Dataframe / Tables */
