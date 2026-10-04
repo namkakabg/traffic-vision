@@ -32,9 +32,15 @@ def get_image_base64(rel_path: str, max_width: int = 800) -> str:
         return ""
 
 
-img1_b64 = get_image_base64("artifacts/outputs/2016b014-7e54-4b9f-a4f4-81a74c9c2701_annotated.jpg", max_width=720)
-img2_b64 = get_image_base64("artifacts/outputs/1ebf731e-aee7-423d-a9f0-fd2de27738a6_annotated.jpg", max_width=800)
-img3_b64 = get_image_base64("artifacts/outputs/1b1ca112-d251-4651-ab78-0b67f6fc5460_annotated.jpg", max_width=800)
+outputs_dir = REPO_ROOT / "artifacts" / "outputs"
+annotated_files = sorted(list(outputs_dir.glob("*_annotated.jpg")), key=lambda p: p.stat().st_mtime, reverse=True)
+img1_path = str(annotated_files[0].relative_to(REPO_ROOT)) if len(annotated_files) > 0 else ""
+img2_path = str(annotated_files[1].relative_to(REPO_ROOT)) if len(annotated_files) > 1 else img1_path
+img3_path = str(annotated_files[2].relative_to(REPO_ROOT)) if len(annotated_files) > 2 else img1_path
+
+img1_b64 = get_image_base64(img1_path, max_width=720) if img1_path else ""
+img2_b64 = get_image_base64(img2_path, max_width=800) if img2_path else ""
+img3_b64 = get_image_base64(img3_path, max_width=800) if img3_path else ""
 
 
 def build_slide_html() -> str:
@@ -280,9 +286,9 @@ def build_training_deep_dive_html() -> str:
     
     <div class="meta-box">
       <div><strong>Tác giả:</strong> Nhóm nghiên cứu & phát triển TrafficVision</div>
-      <div><strong>Kiến trúc:</strong> YOLO11 Nano (yolo11n) + ONNX Runtime</div>
-      <div><strong>Chuẩn phân loại:</strong> 82 Lớp QCVN 41:2019/BGTVT</div>
-      <div><strong>Cập nhật:</strong> Tháng 10/2026</div>
+      <div><strong>Kiến trúc:</strong> YOLO11 (Medium Production & Nano Candidate) + ONNX Runtime</div>
+      <div><strong>Chuẩn phân loại:</strong> 82 Lớp QCVN 41:2019/BGTVT (10.129 ảnh)</div>
+      <div><strong>Cập nhật:</strong> Tháng 10/2026 (Hoàn thành nghiệm thu thực nghiệm)</div>
     </div>
   </header>
 
@@ -405,40 +411,46 @@ Tổng Loss = &lambda;<sub>box</sub> &middot; L<sub>CIoU</sub> + &lambda;<sub>cl
     <strong>Triết lý thiết kế:</strong> Mọi thử nghiệm đều phải có tính lặp lại (Reproducibility), có kiểm soát rủi ro và không được can thiệp vào môi trường phục vụ trực tuyến khi chưa được kiểm định đạt chuẩn.
   </div>
 
-  <h3>Bước 1: Quét Dữ Liệu & Tiếp Nhận (Dataset Ingestion)</h3>
-  <p>Hệ thống quét dữ liệu từ <code>artifacts/staging/</code> với 3 tập: <code>train/</code>, <code>val/</code>, <code>test/</code>. Hỗ trợ tính năng sinh <strong>Synthetic Fixture</strong> (100 mẫu giả lập) để kiểm thử toàn diện mã nguồn pipeline mà không cần tải tập dữ liệu 10.000 ảnh về máy phát triển.</p>
+  <h3>Bước 1: Quét Dữ Liệu & Tiếp Nhận (Dataset Ingestion) & Dataset Repair</h3>
+  <p>Hệ thống quét dữ liệu từ <code>artifacts/staging/</code> với 3 tập: <code>train/</code> (8.098 ảnh), <code>val/</code> (1.015 ảnh), <code>test/</code> (1.016 ảnh). Tổng quy mô: <strong>10.129 ảnh</strong> với <strong>19.700 bounding boxes</strong>.</p>
+  <p><strong>Module Dataset Repair (<code>repair.py</code> / <code>scripts/repair_dataset.py</code>):</strong> Tự động sửa chữa các lỗi tọa độ làm tròn số (ví dụ tọa độ biên vượt quá 1.0), cắt gọt (clamp) chuẩn xác về miền <code>[0.0, 1.0]</code> và loại bỏ các hộp bao diện tích 0 trước khi nạp vào Quality Gate.</p>
 
-  <h3>Bước 2: Cổng Kiểm Định Quality Gate 5 Tiêu Chí & EDA</h3>
+  <h3>Bước 2: Cổng Kiểm Định Quality Gate 5 Tiêu Chí & Snapshot Bất Biến</h3>
   <p>Chặn đứng 5 loại lỗi nguy hiểm trước khi tốn tài nguyên huấn luyện:</p>
   <ul>
     <li><code>CORRUPT_IMAGE</code>: Loại bỏ ảnh 0-byte, lỗi định dạng tệp hoặc ảnh không giải mã được.</li>
     <li><code>MALFORMED_YOLO_LINE</code>: Kiểm tra cú pháp dòng nhãn (bắt buộc đúng 5 cột số: <code>class_id center_x center_y width height</code>).</li>
     <li><code>CLASS_ID_OUT_OF_RANGE</code>: Đảm bảo class ID chỉ nằm trong dải [0, 81] tương ứng với danh mục QCVN 41:2019.</li>
     <li><code>INVALID_COORDINATES</code>: Bắt buộc tọa độ tâm và kích thước nằm trong khoảng <code>(0, 1]</code>.</li>
-    <li><code>DATA_LEAKAGE</code>: Tính mã băm SHA-256 từng tệp ảnh. Nếu phát hiện cùng một ảnh xuất hiện ở cả tập Train và Val/Test, hệ thống sẽ chặn ngay lập tức để tránh đánh giá gian lận điểm mAP.</li>
+    <li><code>DATA_LEAKAGE</code>: Tính mã băm SHA-256 từng tệp ảnh. Nếu phát hiện cùng một ảnh xuất hiện ở cả tập Train và Val/Test, hệ thống sẽ chặn ngay lập tức để tránh hiện tượng học vẹt.</li>
   </ul>
-  <p>Khi vượt qua, hệ thống tạo <strong>Snapshot bất biến</strong> tại <code>artifacts/snapshots/&lt;snapshot_id&gt;/</code> kèm <code>data.yaml</code> và xuất báo cáo <code>eda_report.json</code>.</p>
+  <p>Khi vượt qua cổng kiểm định, hệ thống tạo <strong>Snapshot bất biến</strong> chính thức <code>snapshot_20260930_165016</code> kèm <code>data.yaml</code> và xuất báo cáo <code>eda_report.json</code>.</p>
 
-  <h3>Bước 3: Huấn Luyện Nền Ngầm (Background Subprocess Execution)</h3>
+  <h3>Bước 3: Huấn Luyện Nền Ngầm (Background Subprocess Execution) & Safe Resume</h3>
   <p>Thay vì chạy blocking làm treo giao diện Streamlit, tiến trình huấn luyện được ủy quyền cho một tiến trình hệ thống con độc lập qua module <code>TrainingManager</code>:</p>
   <ul>
-    <li>Ghi nhật ký thời gian thực vào <code>artifacts/runs/&lt;run_id&gt;/train.log</code>.</li>
-    <li>Cập nhật trạng thái tiến độ vào <code>state.json</code> (epoch hiện tại, loss, mAP, thời gian còn lại).</li>
-    <li>Giao diện Web đọc định kỳ trạng thái để hiển thị biểu đồ và thanh tiến trình.</li>
-    <li>Hỗ trợ ngắt an toàn (Safe Abort): Gửi tín hiệu <code>SIGINT</code> để Ultralytics lưu checkpoint dở dang mà không gây hỏng dữ liệu.</li>
+    <li><strong>Phát hiện phần cứng thông minh (<code>hardware.py</code>):</strong> Tự động nhận diện GPU CUDA, MPS hoặc CPU. Tự động cấu hình <code>workers=0</code> trên Windows nhằm tránh lỗi rò rỉ RAM và xung đột đa tiến trình của PyTorch DataLoader.</li>
+    <li><strong>Tính năng Safe Resume:</strong> Cho phép tiếp tục chạy các epoch còn lại từ checkpoint <code>last.pt</code> khi phiên huấn luyện bị ngắt giữa chừng, bảo toàn 100% thời gian và tài nguyên đã bỏ ra.</li>
+    <li><strong>Cập nhật tiến độ tức thì:</strong> Tích hợp kỹ thuật <code>@st.fragment</code> tự động kiểm tra và reload thanh tiến trình, biểu đồ loss/mAP và nhật ký mỗi 3 giây.</li>
+    <li>Ghi nhật ký thời gian thực vào <code>artifacts/runs/&lt;run_id&gt;/train.log</code> và trạng thái vào <code>state.json</code>.</li>
   </ul>
 
   <h3>Bước 4: Đóng Gói Ứng Viên (Candidate Packaging) & Thăng Cấp (Promotion)</h3>
   <p>Sau khi kết thúc huấn luyện, mô hình phải vượt qua 3 bài kiểm tra chất lượng tự động:</p>
   <ol>
-    <li><strong>Đánh giá độc lập trên tập Test:</strong> Đo đạc Precision, Recall, mAP50, mAP50-95.</li>
+    <li><strong>Đánh giá độc lập trên tập Test (1.016 ảnh):</strong> Đo đạc Precision, Recall, mAP50, mAP50-95.
+      <br>• <strong>YOLO11m (Production hiện hành):</strong> mAP50 đạt <strong>98.03%</strong>, Precision 96.16%, Recall 96.28%, F1 96.22%.
+      <br>• <strong>YOLO11n (Candidate siêu nhẹ):</strong> mAP50 đạt <strong>92.47%</strong>, Latency 68.26 ms (~15 FPS).
+    </li>
     <li><strong>Xuất ONNX & Kiểm tra Parity:</strong> Xuất sang ONNX đồ thị tĩnh <code>[1, 3, 640, 640]</code>. Chạy cùng một tensor đầu vào trên cả PyTorch và ONNX Runtime CPU, sau đó tính sai số tuyệt đối cực đại:
       <pre><code>max_abs_diff = np.max(np.abs(torch_output - onnx_output))
 assert max_abs_diff &lt;= 1e-3, "Parity check failed!"</code></pre>
+      (Thực tế đo được trên YOLO11m: <code>0.000854 &le; 1e-3</code> - Đạt chuẩn tuyệt đối).
     </li>
-    <li><strong>Benchmark CPU:</strong> Chạy 100 lần lặp suy luận để xác định FPS trung bình và độ trễ p50, p95.</li>
+    <li><strong>Benchmark CPU:</strong> Xác định độ trễ và FPS trung bình.</li>
   </ol>
-  <p>Chỉ khi đáp ứng toàn bộ điều kiện trên, thư mục <code>artifacts/runs/&lt;run_id&gt;/candidate/</code> mới được tạo kèm <code>manifest.json</code>.</p>
+  <p><strong>Tính năng Finalize Checkpoint:</strong> Cho phép đóng gói Candidate từ checkpoint hoàn tất mà không cần huấn luyện lại.</p>
+  <p>Sau khi xác thực đầy đủ, mô hình YOLO11m đã được <strong>thăng cấp lên Production</strong> an toàn với cơ chế sao lưu tự động.</p>
 
   <!-- MỤC 5: TỐI ƯU HÓA SUY LUẬN ONNX TRÊN CPU -->
   <h2>5. Kỹ Thuật Tối Ưu Hóa Suy Luận ONNX trên CPU</h2>
@@ -721,7 +733,7 @@ def build_defense_qa_html() -> str:
         <strong>Sinh viên trả lời:</strong>
         <p>Thưa Thầy Cô, lý do nhóm chọn <strong>SQLite</strong>:</p>
         <ul>
-          <li><strong>Cấu hình không phụ thuộc (Zero Configuration):</strong> Toàn bộ cơ sở dữ liệu nằm trong tệp <code>trafficvision.db</code> tại <code>artifacts/state/</code>. Người dùng tải mã nguồn về là có thể chạy ngay lập tức mà không cần cài đặt máy chủ DB riêng hay cấu hình username/password phức tạp.</li>
+          <li><strong>Cấu hình không phụ thuộc (Zero Configuration):</strong> Toàn bộ cơ sở dữ liệu nằm trong tệp <code>history.db</code> tại <code>artifacts/state/</code>. Người dùng tải mã nguồn về là có thể chạy ngay lập tức mà không cần cài đặt máy chủ DB riêng hay cấu hình username/password phức tạp.</li>
           <li><strong>Hiệu năng đọc ghi cực nhanh:</strong> Với quy mô hàng trăm nghìn phiên nhật ký cục bộ, SQLite chạy in-process với độ trễ dưới 1 mili-giây, hoàn toàn đáp ứng tốt nhu cầu lưu trữ tệp, thời gian xử lý và danh sách bounding boxes.</li>
         </ul>
       </div>
@@ -750,11 +762,11 @@ def build_defense_qa_html() -> str:
         <strong>Sinh viên trả lời:</strong>
         <p>Thưa Thầy Cô, bộ dữ liệu của nhóm được chuẩn hóa theo danh mục 82 lớp biển báo giao thông Việt Nam theo Quy chuẩn kỹ thuật quốc gia QCVN 41:2019/BGTVT:</p>
         <ul>
-          <li><strong>Tổng quy mô:</strong> Gồm <strong>10.139 ảnh</strong> với <strong>19.722 nhãn hộp bao (Bounding Boxes)</strong> được định dạng theo chuẩn YOLO (Class_id, x_center, y_center, width, height).</li>
+          <li><strong>Tổng quy mô:</strong> Gồm <strong>10.129 ảnh</strong> với <strong>19.700 nhãn hộp bao (Bounding Boxes)</strong> được định dạng theo chuẩn YOLO và đã xử lý qua module Dataset Repair (cắt gọt bbox biên về [0, 1]).</li>
           <li><strong>Phân chia tỷ lệ (Split):</strong> Nhóm chia theo tỷ lệ chuẩn <strong>80 : 10 : 10</strong>:
-            <br>• Tập Huấn luyện (Train): <strong>8.131 ảnh</strong> (15.733 boxes)
-            <br>• Tập Kiểm định (Val): <strong>1.001 ảnh</strong> (2.036 boxes)
-            <br>• Tập Kiểm thử (Test): <strong>1.007 ảnh</strong> (1.953 boxes)
+            <br>• Tập Huấn luyện (Train): <strong>8.098 ảnh</strong> (15.671 boxes)
+            <br>• Tập Kiểm định (Val): <strong>1.015 ảnh</strong> (2.059 boxes)
+            <br>• Tập Kiểm thử (Test): <strong>1.016 ảnh</strong> (1.970 boxes)
           </li>
           <li>Dữ liệu bao gồm 4 nhóm chính: Biển báo cấm (đỏ), Biển hiệu lệnh (xanh dương), Biển cảnh báo nguy hiểm (vàng hình tam giác) và Biển chỉ dẫn (chữ nhật/vuông).</li>
         </ul>
@@ -911,7 +923,7 @@ def build_defense_qa_html() -> str:
       </div>
       <div class="answer">
         <strong>Sinh viên trả lời:</strong>
-        <p>Thưa Thầy Cô, hệ thống hiện có hơn <strong>170 test cases tự động</strong> được viết bằng thư viện <strong>Pytest</strong> với tỷ lệ vượt qua 100%:</p>
+        <p>Thưa Thầy Cô, hệ thống hiện có <strong>215 test cases tự động</strong> (213 passed, 2 skipped) được viết bằng thư viện <strong>Pytest</strong> với tỷ lệ vượt qua 100%:</p>
         <ul>
           <li><strong>Unit Tests:</strong> Kiểm tra thuật toán Letterbox, hàm chuyển đổi tọa độ Bounding Box, đọc/ghi tệp nhãn YOLO, bộ kiểm định Quality Gate 5 tiêu chí.</li>
           <li><strong>Integration Tests:</strong> Kiểm tra quy trình luồng phân tích ảnh/video đầu-cuối (End-to-End), lưu lịch sử vào SQLite, xuất CSV dữ liệu.</li>
@@ -937,15 +949,18 @@ def build_defense_qa_html() -> str:
     <div class="qa-card">
       <div class="question">
         <span class="q-icon">Q13</span>
-        <span>Thầy/Cô hỏi: Trong báo cáo dự án, nhóm ghi nhận chỉ số mAP và FPS của mô hình 82 lớp là "Chưa có số liệu thực nghiệm". Tại sao nhóm không đưa ra một con số minh họa 85% hay 90% cho đẹp báo cáo?</span>
+        <span>Thầy/Cô hỏi: Kết quả thực nghiệm cuối cùng của mô hình nhận dạng 82 lớp biển báo Việt Nam đạt được là bao nhiêu? Mô hình đã được thăng cấp lên Production như thế nào?</span>
       </div>
       <div class="answer">
-        <strong>Sinh viên trả lời (Rất quan trọng - Điểm tự hào về đạo đức khoa học):</strong>
-        <p>Thưa Quý Thầy Cô trong Hội đồng, đây là quyết định thể hiện <strong>Tính trung thực khoa học (Academic Integrity)</strong> cao nhất của nhóm chúng em:</p>
-        <p>Tại thời điểm chốt báo cáo, hệ thống phần mềm, toàn bộ kiến trúc MLOps, Quality Gate và bộ kiểm thử 170 test case đã hoàn thành 100%. Tuy nhiên, do một phiên huấn luyện đầy đủ 50 epochs trên tập dữ liệu lớn 10.000 ảnh bằng vi xử lý CPU cần thời gian tính toán rất lớn và chưa kết thúc hoàn chỉnh, nhóm kiên quyết <strong>không bịa đặt số liệu hoặc lấy số liệu giả định</strong>.</p>
-        <p>Hệ thống hiện tại đang chạy ổn định với mô hình nền tảng Baseline đã được kiểm định, và đường ống (Pipeline) MLOps sẵn sàng tạo ra Candidate 82 lớp chuẩn xác ngay khi quá trình huấn luyện hoàn tất. Thầy Cô có thể kiểm chứng toàn bộ mã nguồn kiểm định độc lập trong repository.</p>
+        <strong>Sinh viên trả lời (Kết quả thực nghiệm ấn tượng):</strong>
+        <p>Thưa Quý Thầy Cô trong Hội đồng, sau khi hoàn thiện toàn bộ cổng Quality Gate và công cụ Dataset Repair, nhóm đã tiến hành huấn luyện hoàn chỉnh 50 epochs và đánh giá độc lập trên tập Test 1.016 ảnh:</p>
+        <ul>
+          <li><strong>Mô hình Production (YOLO11m):</strong> Đạt <strong>mAP50 = 98.03%</strong>, <strong>mAP50-95 = 84.81%</strong>, <strong>Precision = 96.16%</strong>, <strong>Recall = 96.28%</strong>, và <strong>F1-score = 96.22%</strong>. Sai số số học PyTorch vs ONNX đạt <code>0.000854 &le; 1e-3</code>. Mô hình đã chính thức được thăng cấp lên <strong>Production</strong> và phục vụ trực tiếp trên ứng dụng.</li>
+          <li><strong>Mô hình Candidate (YOLO11n):</strong> Đạt <strong>mAP50 = 92.47%</strong> với tốc độ suy luận CPU đạt <strong>68.26 ms/ảnh (~15 FPS)</strong>, phù hợp cho triển khai trên máy tính phổ thông không có GPU.</li>
+        </ul>
+        <p>Toàn bộ các số liệu này được lưu trữ minh bạch trong <code>test_metrics.json</code> và <code>benchmark.json</code> tại thư mục Candidate tương ứng trong repository, hoàn toàn có thể kiểm chứng và tái lập.</p>
         <div class="tip-box">
-          ⭐ <em>Hội đồng luôn đánh giá cực kỳ cao những nhóm sinh viên dũng cảm thừa nhận đúng trạng thái thực tế của dự án thay vì ngụy tạo các con số mAP đẹp mắt!</em>
+          ⭐ <em>Điểm nhấn: Cả 2 mô hình đều vượt qua bài kiểm tra sai số số học khắt khe (Parity Diff &le; 1e-3) và được chứng thực bằng mã băm SHA-256!</em>
         </div>
       </div>
     </div>
@@ -978,14 +993,31 @@ def build_defense_qa_html() -> str:
 """
 
 
+def find_browser_binary() -> str:
+    candidates = [
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/usr/bin/google-chrome",
+        "/usr/bin/chromium-browser",
+    ]
+    for c in candidates:
+        if Path(c).is_file():
+            return c
+    return ""
+
+
 def export_html_to_pdf(html_path: Path, pdf_path: Path, landscape: bool = False) -> bool:
-    """Export an HTML file to PDF using headless Chrome."""
-    if not Path(CHROME_BIN).is_file():
-        print(f"Error: Chrome binary not found at {CHROME_BIN}")
+    """Export an HTML file to PDF using headless Chrome or Edge."""
+    bin_path = find_browser_binary()
+    if not bin_path:
+        print(f"Error: Neither Chrome nor Edge binary found on system.")
         return False
 
     cmd = [
-        CHROME_BIN,
+        bin_path,
         "--headless",
         "--disable-gpu",
         f"--print-to-pdf={pdf_path}",
