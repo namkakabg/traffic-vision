@@ -46,8 +46,19 @@ class AnalysisService:
         prod = self.registry.get_production()
         return UltralyticsOnnxPredictor.from_registered(prod)
 
-    def analyze_image_upload(self, filename: str, data: bytes) -> AnalysisArtifacts:
+    def analyze_image_upload(
+        self,
+        filename: str,
+        data: bytes,
+        confidence: float | None = None,
+        iou: float | None = None,
+        imgsz: int | None = None,
+    ) -> AnalysisArtifacts:
         settings = self.settings_store.load()
+        conf_val = confidence if confidence is not None else settings.confidence
+        iou_val = iou if iou is not None else settings.iou
+        imgsz_val = imgsz if imgsz is not None else getattr(settings, "imgsz", self.config.inference.imgsz)
+
         staged = stage_upload(
             filename=filename,
             data=data,
@@ -63,8 +74,9 @@ class AnalysisService:
         analysis = analyze_image(
             image_bgr=image_bgr,
             predictor=predictor,
-            confidence=settings.confidence,
-            iou=settings.iou,
+            confidence=conf_val,
+            iou=iou_val,
+            imgsz=imgsz_val,
         )
 
         annotated_bytes = annotate_image(image_bgr, analysis.detections, format="JPEG")
@@ -88,8 +100,8 @@ class AnalysisService:
             original_filename=filename,
             model_id=prod.manifest.model_id,
             model_stage=prod.manifest.stage,
-            confidence_threshold=settings.confidence,
-            iou_threshold=settings.iou,
+            confidence_threshold=conf_val,
+            iou_threshold=iou_val,
             total_detections=len(analysis.detections),
             class_counts=class_counts,
             inference_ms=analysis.inference_ms,
@@ -113,8 +125,15 @@ class AnalysisService:
         filename: str,
         data: bytes,
         on_progress: Callable[[VideoProgress], None] | None = None,
+        confidence: float | None = None,
+        iou: float | None = None,
+        imgsz: int | None = None,
     ) -> AnalysisArtifacts:
         settings = self.settings_store.load()
+        conf_val = confidence if confidence is not None else settings.confidence
+        iou_val = iou if iou is not None else settings.iou
+        imgsz_val = imgsz if imgsz is not None else getattr(settings, "imgsz", self.config.inference.imgsz)
+
         staged = stage_upload(
             filename=filename,
             data=data,
@@ -132,7 +151,7 @@ class AnalysisService:
         annotated_path = self.config.paths.outputs / f"{record_id}_annotated{ext}"
         csv_path = self.config.paths.outputs / f"{record_id}_detections.csv"
 
-        options = InferenceOptions(confidence=settings.confidence, iou=settings.iou)
+        options = InferenceOptions(confidence=conf_val, iou=iou_val, imgsz=imgsz_val)
 
         video_analysis = process_video(
             input_path=staged.staged_path,
@@ -151,8 +170,8 @@ class AnalysisService:
             original_filename=filename,
             model_id=prod.manifest.model_id,
             model_stage=prod.manifest.stage,
-            confidence_threshold=settings.confidence,
-            iou_threshold=settings.iou,
+            confidence_threshold=conf_val,
+            iou_threshold=iou_val,
             total_detections=total_dets,
             class_counts=video_analysis.detection_counts_by_class,
             inference_ms=video_analysis.inference_ms,

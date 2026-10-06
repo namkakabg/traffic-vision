@@ -1,6 +1,6 @@
 {
-  "cpu_latency_ms": 488.5671,
-  "cpu_fps": 2.05,
-  "max_abs_diff": 0.000854,
+  "cpu_latency_ms": 431.67,
+  "cpu_fps": 2.32,
+  "max_abs_diff": 0.001007,
   "is_parity_valid": true
 }

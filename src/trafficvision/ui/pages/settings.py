@@ -41,7 +41,7 @@ def render_settings_page(services: AppServices) -> None:
             """),
             unsafe_allow_html=True,
         )
-        col_c, col_i = st.columns(2)
+        col_c, col_i, col_sz = st.columns(3)
         with col_c:
             new_conf = st.slider(
                 "Ngưỡng tin cậy (Confidence)",
@@ -59,6 +59,16 @@ def render_settings_page(services: AppServices) -> None:
                 value=float(current.iou),
                 step=0.05,
                 help="Ngưỡng loại bỏ các hộp bao trùng lặp (Non-Maximum Suppression).",
+            )
+        with col_sz:
+            imgsz_options = [640, 800, 960, 1024, 1280, 1600]
+            curr_imgsz = getattr(current, "imgsz", 1280)
+            def_idx = imgsz_options.index(curr_imgsz) if curr_imgsz in imgsz_options else 4
+            new_imgsz = st.selectbox(
+                "Kích thước ảnh suy luận (imgsz)",
+                options=imgsz_options,
+                index=def_idx,
+                help="Độ phân giải ảnh đưa vào model suy luận (mặc định: 1280). Giá trị cao hơn giúp nhận diện tốt biển báo nhỏ và ở xa.",
             )
 
         st.markdown(
@@ -96,6 +106,7 @@ def render_settings_page(services: AppServices) -> None:
         updated = RuntimeSettings(
             confidence=new_conf,
             iou=new_iou,
+            imgsz=int(new_imgsz),
             max_image_bytes=int(new_img_mb * 1024 * 1024),
             max_video_bytes=int(new_vid_mb * 1024 * 1024),
         )

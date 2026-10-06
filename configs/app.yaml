@@ -5,7 +5,7 @@ app:
 inference:
   confidence: 0.25
   iou: 0.70
-  imgsz: 640
+  imgsz: 1280
   device: "cpu"
   backend: "onnx"
 

@@ -91,7 +91,7 @@
     "81": "Đường trơn"
   },
   "imgsz": 640,
-  "sha256": "186f8ae6c1c3f243b67486f8d1a0adac28ec5cff5131f6d27130dba89b8cdb04",
+  "sha256": "d25f69be681db6e7aac1124f0dc26db139ed1cb6ddb89e1b1341b48759cd83dd",
   "source": "runs/exp_20260930_235214",
   "created_at": "2026-10-01T22:54:52.284417+00:00",
   "metrics": {
@@ -100,9 +100,9 @@
     "f1": 0.96217,
     "map50": 0.98025,
     "map50_95": 0.84812,
-    "cpu_latency_ms": 488.5671,
-    "cpu_fps": 2.05,
+    "cpu_latency_ms": 431.67,
+    "cpu_fps": 2.32,
     "is_parity_valid": true,
-    "max_abs_diff": 0.000854
+    "max_abs_diff": 0.001007
   }
 }

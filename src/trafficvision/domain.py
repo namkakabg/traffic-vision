@@ -78,6 +78,7 @@ class InferenceOptions(BaseModel):
 
     confidence: float = Field(default=0.25, ge=0.0, le=1.0)
     iou: float = Field(default=0.70, ge=0.0, le=1.0)
+    imgsz: int = Field(default=1280, gt=0)
 
 
 class StagedMedia(BaseModel):

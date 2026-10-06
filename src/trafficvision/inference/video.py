@@ -127,6 +127,10 @@ def process_video(
     processed_frames = 0
     current_frame_idx = 0
 
+    import inspect
+    sig = inspect.signature(predictor.predict)
+    has_imgsz = "imgsz" in sig.parameters
+
     try:
         with open(csv_path, "w", encoding="utf-8-sig", newline="") as csv_file:
             csv_writer = csv.writer(csv_file, lineterminator="\r\n")
@@ -154,11 +158,19 @@ def process_video(
                 timestamp_s = current_frame_idx / fps if fps > 0 else 0.0
 
                 start_t = time.perf_counter()
-                detections = predictor.predict(
-                    frame,
-                    confidence=options.confidence,
-                    iou=options.iou,
-                )
+                if has_imgsz:
+                    detections = predictor.predict(
+                        frame,
+                        confidence=options.confidence,
+                        iou=options.iou,
+                        imgsz=getattr(options, "imgsz", None),
+                    )
+                else:
+                    detections = predictor.predict(
+                        frame,
+                        confidence=options.confidence,
+                        iou=options.iou,
+                    )
                 total_inf_ms += (time.perf_counter() - start_t) * 1000.0
 
                 for det in detections:

@@ -30,6 +30,7 @@ def export_and_verify_onnx(
     tolerance: float = 1e-3,
     warmup_runs: int = 10,
     benchmark_runs: int = 30,
+    dynamic: bool = True,
 ) -> ExportResult:
     """Export PyTorch YOLO weights to ONNX, verify numerical parity, and benchmark CPU inference.
 
@@ -39,6 +40,7 @@ def export_and_verify_onnx(
         tolerance: Maximum acceptable absolute difference between PyTorch and ONNX outputs.
         warmup_runs: Number of unmeasured warmup inference runs (default 10).
         benchmark_runs: Number of timed inference iterations for latency/FPS calculation (default 30).
+        dynamic: Whether to export ONNX with dynamic input axes (default True).
 
     Returns:
         ExportResult containing path to ONNX model, max absolute difference, parity status,
@@ -52,12 +54,12 @@ def export_and_verify_onnx(
     model_file = Path(model_path)
     model = YOLO(str(model_file))
 
-    # 1. Export model to ONNX with deterministic fixed dimensions
+    # 1. Export model to ONNX with dynamic or fixed dimensions
     exported_str = model.export(
         format="onnx",
         imgsz=imgsz,
         batch=1,
-        dynamic=False,
+        dynamic=dynamic,
         simplify=False,
         device="cpu",
     )

@@ -127,7 +127,7 @@ def render_analysis_page(services: AppServices) -> None:
                                     services.analysis_service.analyze_image_upload(
                                         filename=uploaded_image.name,
                                         data=uploaded_image.getvalue(),
-                                     )
+                                    )
                                 )
                                 st.session_state["image_result"] = artifacts
                                 st.session_state["active_result_type"] = "image"

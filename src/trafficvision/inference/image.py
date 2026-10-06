@@ -13,16 +13,27 @@ def analyze_image(
     predictor: Predictor,
     confidence: float,
     iou: float,
+    imgsz: int | None = None,
 ) -> ImageAnalysis:
     """Run detection on a single BGR image and return immutable ImageAnalysis."""
     height, width = image_bgr.shape[:2]
 
     start = time.perf_counter()
-    detections = predictor.predict(
-        image_bgr,
-        confidence=confidence,
-        iou=iou,
-    )
+    import inspect
+    sig = inspect.signature(predictor.predict)
+    if "imgsz" in sig.parameters:
+        detections = predictor.predict(
+            image_bgr,
+            confidence=confidence,
+            iou=iou,
+            imgsz=imgsz,
+        )
+    else:
+        detections = predictor.predict(
+            image_bgr,
+            confidence=confidence,
+            iou=iou,
+        )
     elapsed_ms = (time.perf_counter() - start) * 1000.0
 
     return ImageAnalysis(

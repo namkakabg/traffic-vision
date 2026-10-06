@@ -13,6 +13,7 @@ from trafficvision.config import AppConfig
 class RuntimeSettings(BaseModel):
     confidence: float = Field(default=0.25, ge=0.0, le=1.0)
     iou: float = Field(default=0.70, ge=0.0, le=1.0)
+    imgsz: int = Field(default=1280, gt=0)
     max_image_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
     max_video_bytes: int = Field(default=500 * 1024 * 1024, gt=0)
 
@@ -25,10 +26,12 @@ class RuntimeSettingsStore:
         self.default_config = default_config
 
     def load(self) -> RuntimeSettings:
+        default_imgsz = getattr(self.default_config.inference, "imgsz", 1280)
         if not self.settings_path.is_file():
             return RuntimeSettings(
                 confidence=self.default_config.inference.confidence,
                 iou=self.default_config.inference.iou,
+                imgsz=default_imgsz,
                 max_image_bytes=self.default_config.media.max_image_bytes,
                 max_video_bytes=self.default_config.media.max_video_bytes,
             )
@@ -36,11 +39,14 @@ class RuntimeSettingsStore:
         try:
             content = self.settings_path.read_text(encoding="utf-8")
             data = json.loads(content)
+            if "imgsz" not in data:
+                data["imgsz"] = default_imgsz
             return RuntimeSettings.model_validate(data)
         except Exception:
             return RuntimeSettings(
                 confidence=self.default_config.inference.confidence,
                 iou=self.default_config.inference.iou,
+                imgsz=default_imgsz,
                 max_image_bytes=self.default_config.media.max_image_bytes,
                 max_video_bytes=self.default_config.media.max_video_bytes,
             )

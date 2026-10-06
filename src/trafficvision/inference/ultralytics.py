@@ -46,15 +46,18 @@ class UltralyticsOnnxPredictor:
         *,
         confidence: float,
         iou: float,
+        imgsz: int | None = None,
     ) -> tuple[Detection, ...]:
         self._ensure_loaded()
         assert self._yolo is not None
+
+        target_imgsz = imgsz if imgsz is not None else getattr(self.model.manifest, "imgsz", 640)
 
         results = self._yolo(
             image_bgr,
             conf=confidence,
             iou=iou,
-            imgsz=self.model.manifest.imgsz,
+            imgsz=target_imgsz,
             device="cpu",
             verbose=False,
         )

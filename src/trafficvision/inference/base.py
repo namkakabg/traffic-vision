@@ -18,6 +18,7 @@ class Predictor(Protocol):
         *,
         confidence: float,
         iou: float,
+        imgsz: int | None = None,
     ) -> tuple[Detection, ...]:
         """Run object detection inference on a BGR image array."""
         ...

@@ -75,7 +75,7 @@ def test_export_and_verify_onnx_parity_pass(tmp_path: Path):
             format="onnx",
             imgsz=640,
             batch=1,
-            dynamic=False,
+            dynamic=True,
             simplify=False,
             device="cpu",
         )
@@ -92,6 +92,51 @@ def test_export_and_verify_onnx_parity_pass(tmp_path: Path):
 
         # Verify session.run called for: 1 parity check + 2 warmup + 4 benchmark = 7 calls
         assert mock_session.run.call_count == 7
+
+
+def test_export_and_verify_onnx_dynamic_flag(tmp_path: Path):
+    """Verify dynamic parameter can be explicitly configured."""
+    model_path = tmp_path / "best.pt"
+    model_path.write_bytes(b"dummy-pt-weights")
+    onnx_file = tmp_path / "best.onnx"
+    onnx_file.write_bytes(b"dummy-onnx-bytes")
+
+    shape = (1, 84, 8400)
+    base_out = np.ones(shape, dtype=np.float32)
+
+    mock_yolo_instance = MagicMock()
+    mock_yolo_instance.export.return_value = str(onnx_file)
+
+    mock_torch_tensor = MagicMock()
+    mock_torch_tensor.detach.return_value.cpu.return_value.numpy.return_value = base_out
+    mock_yolo_instance.model.return_value = (mock_torch_tensor,)
+
+    mock_session = MagicMock()
+    mock_input_meta = MagicMock()
+    mock_input_meta.name = "images"
+    mock_session.get_inputs.return_value = [mock_input_meta]
+    mock_session.run.return_value = [base_out]
+
+    with (
+        patch("ultralytics.YOLO", return_value=mock_yolo_instance),
+        patch("onnxruntime.InferenceSession", return_value=mock_session),
+    ):
+        export_and_verify_onnx(
+            model_path,
+            imgsz=640,
+            warmup_runs=1,
+            benchmark_runs=1,
+            dynamic=False,
+        )
+
+        mock_yolo_instance.export.assert_called_once_with(
+            format="onnx",
+            imgsz=640,
+            batch=1,
+            dynamic=False,
+            simplify=False,
+            device="cpu",
+        )
 
 
 def test_export_and_verify_onnx_parity_divergence_failure(tmp_path: Path):
